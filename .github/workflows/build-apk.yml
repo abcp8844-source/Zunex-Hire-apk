@@ -16,9 +16,9 @@ jobs:
       - name: Set up Node.js LTS
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 20
 
-      - name: Set up JDK
+      - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
@@ -27,14 +27,18 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
-      - name: Generate Native Android Environment
+      - name: Generate Native Android Environment with KTX Support
         run: npx expo prebuild --platform android --clean
 
-      - name: Build Android Release APK
+      - name: Grant Execute Permission for Gradle
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleRelease
+
+      - name: Build Release APK using Gradle and KTX
+        run: |
+          cd android
+          ./gradlew assembleRelease --no-daemon
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
