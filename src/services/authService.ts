@@ -6,7 +6,7 @@ const SUPABASE_ANON_KEY = 'your-supabase-anon-key';
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-export const loginUser = async (email: string, pass: string) => {
+export const signInUser = async (email: string, pass: string) => {
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password: pass,
@@ -15,7 +15,7 @@ export const loginUser = async (email: string, pass: string) => {
   return data;
 };
 
-export const registerUser = async (email: string, pass: string, fullName: string) => {
+export const signUpUser = async (email: string, pass: string, fullName: string) => {
   const { data, error } = await supabase.auth.signUp({
     email,
     password: pass,
