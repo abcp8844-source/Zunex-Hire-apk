@@ -4,7 +4,7 @@ import { FeedScreen } from '../screens/feed/FeedScreen';
 import { GroupsHomeScreen } from '../screens/groups/GroupsHomeScreen';
 import { NotificationsScreen } from '../screens/interactions/NotificationsScreen';
 import { MenuScreen } from '../screens/menu/MenuScreen';
-import { theme } from '../../theme';
+import { theme } from '../theme';
 
 const Tab = createBottomTabNavigator();
 

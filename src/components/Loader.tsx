@@ -1,6 +1,6 @@
 import React from 'react';
 import { ActivityIndicator, View, StyleSheet } from 'react-native';
-import { theme } from '../../theme';
+import { theme } from '../theme';
 
 export const Loader: React.FC = () => {
   return (
