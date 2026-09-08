@@ -14,6 +14,7 @@ import com.example.data.model.GroupEntity
 import com.example.data.model.GroupMemberEntity
 import com.example.data.model.NotificationEntity
 import com.example.data.model.PostEntity
+import com.example.data.model.StoryEntity
 import com.example.data.model.UserEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -33,6 +34,9 @@ interface UserDao {
 
     @Query("SELECT * FROM users WHERE isCurrentUser = 0 AND id NOT IN (SELECT blockedUserId FROM blocked_users)")
     fun getSuggestedFriends(): Flow<List<UserEntity>>
+
+    @Query("SELECT * FROM users ORDER BY name ASC")
+    fun getAllUsers(): Flow<List<UserEntity>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertUser(user: UserEntity)
@@ -81,6 +85,9 @@ interface PostDao {
 
     @Query("SELECT * FROM posts WHERE content LIKE '%' || :query || '%' ORDER BY createdAt DESC")
     fun searchPosts(query: String): Flow<List<PostEntity>>
+
+    @Query("SELECT * FROM posts WHERE isSaved = 1 ORDER BY createdAt DESC")
+    fun getSavedPosts(): Flow<List<PostEntity>>
 
     @Query("SELECT photoUrl FROM posts WHERE authorId = :authorId AND photoUrl IS NOT NULL AND photoUrl != ''")
     fun getUserPhotos(authorId: String): Flow<List<String>>
@@ -232,4 +239,19 @@ interface InteractionDao {
 
     @Query("DELETE FROM blocked_users WHERE userId = :userId AND blockedUserId = :blockedUserId")
     suspend fun unblockUser(userId: String, blockedUserId: String)
+}
+
+@Dao
+interface StoryDao {
+    @Query("SELECT * FROM stories ORDER BY createdAt DESC")
+    fun getAllStories(): Flow<List<StoryEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertStory(story: StoryEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertStories(stories: List<StoryEntity>)
+
+    @Query("DELETE FROM stories WHERE id = :storyId")
+    suspend fun deleteStory(storyId: String)
 }

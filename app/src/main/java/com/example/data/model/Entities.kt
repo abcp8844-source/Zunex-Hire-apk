@@ -8,17 +8,30 @@ data class UserEntity(
     @PrimaryKey val id: String,
     val name: String,
     val email: String,
-    val phone: String = "",
+    val phone: String = "099 606 8061",
     val avatarUrl: String = "",
     val coverPhotoUrl: String = "",
-    val bio: String = "",
-    val work: String = "",
-    val education: String = "",
-    val livesIn: String = "",
-    val fromCity: String = "",
+    val bio: String = "Digital Creator & Traveler. Always connecting people across borders.",
+    val work: String = "Founder at Zunexhire",
+    val education: String = "Computer Science at University",
+    val livesIn: String = "Bangkok, Thailand",
+    val fromCity: String = "Lahore, Pakistan",
     val relationshipStatus: String = "Single",
+    val dob: String = "5 July 1998",
+    val gender: String = "Male",
+    val languages: String = "English, Urdu, Thai",
+    val hobbies: String = "Coding, Football, Travel, Photography",
+    val interests: String = "Sports teams and athletes: zunexhire.com",
+    val travelPlaces: String = "Thailand, UAE, Malaysia, Pakistan",
+    val links: String = "zunexhire.com",
+    val socialLinks: String = "Instagram: @zunex_official",
     val joinedDate: String = "September 2024",
-    val isCurrentUser: Boolean = false
+    val isCurrentUser: Boolean = false,
+    val isVerified: Boolean = true,
+    val isProfessionalMode: Boolean = true,
+    val isLocked: Boolean = false,
+    val currentVibe: String = "Current vibe... 🚀",
+    val postsCount: Int = 5
 )
 
 @Entity(tableName = "posts")
@@ -33,11 +46,15 @@ data class PostEntity(
     val photoUrl: String? = null,
     val backgroundColorHex: String? = null,
     val privacy: String = "public", // "public", "friends", "only_me"
+    val isAnonymous: Boolean = false,
+    val topic: String? = null,
+    val isPinned: Boolean = false,
     val likesCount: Int = 0,
     val commentsCount: Int = 0,
     val sharesCount: Int = 0,
     val createdAt: Long = System.currentTimeMillis(),
     val isLikedByMe: Boolean = false,
+    val isSaved: Boolean = false,
     val myReactionType: String? = null // "like", "love", "care", "haha", "wow", "sad", "angry"
 )
 
@@ -63,13 +80,26 @@ data class GroupEntity(
     val description: String,
     val coverPhotoUrl: String = "",
     val privacy: String = "public", // "public", "private"
-    val category: String = "General",
-    val membersCount: Int = 1,
-    val postsCount: Int = 0,
+    val category: String = "Jobs & Travel",
+    val membersCount: Int = 5120,
+    val postsCount: Int = 34,
     val isJoined: Boolean = false,
+    val isPinned: Boolean = false,
+    val isPaused: Boolean = false,
     val userRole: String = "none", // "admin", "moderator", "member", "none"
     val requirePostApproval: Boolean = false,
+    val allowAnonymousPosts: Boolean = true,
+    val topics: String = "All topics, jobs and job, travel, Announcements",
     val rules: String = "1. Be kind and courteous\n2. No hate speech or bullying\n3. Respect everyone's privacy\n4. Relevant discussions only",
+    val pendingPostsCount: Int = 0,
+    val pendingRequestsCount: Int = 3,
+    val reportedCount: Int = 0,
+    val moderationAlertsCount: Int = 0,
+    val badgeRequestsCount: Int = 0,
+    val potentialSpamCount: Int = 0,
+    val postsGrowth: String = "-75%",
+    val commentsGrowth: String = "+0%",
+    val reactionsGrowth: String = "+525%",
     val createdAt: Long = System.currentTimeMillis()
 )
 
@@ -83,6 +113,17 @@ data class GroupMemberEntity(
     val role: String = "member", // "admin", "moderator", "member"
     val joinedAt: Long = System.currentTimeMillis(),
     val isPending: Boolean = false
+)
+
+@Entity(tableName = "stories")
+data class StoryEntity(
+    @PrimaryKey val id: String,
+    val authorId: String,
+    val authorName: String,
+    val authorAvatar: String,
+    val mediaUrl: String,
+    val caption: String = "",
+    val createdAt: Long = System.currentTimeMillis()
 )
 
 @Entity(tableName = "friend_requests")

@@ -13,6 +13,7 @@ import java.util.UUID
 class UserRepository(private val db: AppDatabase) {
 
     val currentUser: Flow<UserEntity?> = db.userDao().getCurrentUser()
+    val allUsers: Flow<List<UserEntity>> = db.userDao().getAllUsers()
 
     fun getUserById(userId: String): Flow<UserEntity?> = db.userDao().getUserById(userId)
 

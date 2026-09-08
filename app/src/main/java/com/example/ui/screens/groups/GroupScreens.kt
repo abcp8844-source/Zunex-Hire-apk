@@ -1,7 +1,10 @@
 package com.example.ui.screens.groups
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,16 +28,33 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AdminPanelSettings
+import androidx.compose.material.icons.filled.Bookmark
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Dashboard
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.EmojiEmotions
 import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.PersonAdd
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.compose.material.icons.filled.PinDrop
 import androidx.compose.material.icons.filled.Public
+import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -46,15 +66,18 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScrollableTabRow
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -77,24 +100,23 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.example.data.model.GroupEntity
-import com.example.data.model.GroupMemberEntity
 import com.example.data.model.UserEntity
 import com.example.data.repository.GroupRepository
 import com.example.data.repository.PostRepository
+import com.example.ui.components.MediaPickerBottomSheet
+import com.example.ui.components.POPULAR_PRESET_IMAGES
 import com.example.ui.components.PostCard
-import com.example.ui.theme.FbBorder
 import com.example.ui.theme.ZunexAccentGold
 import com.example.ui.theme.ZunexPrimaryBlue
-import com.example.ui.theme.ZunexPrimaryLight
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun GroupsHomeScreen(
+fun GroupListScreen(
     currentUser: UserEntity?,
     groupRepository: GroupRepository,
-    onGroupClick: (String) -> Unit,
     onCreateGroupClick: () -> Unit,
+    onGroupClick: (String) -> Unit,
     onSearchClick: () -> Unit
 ) {
     val joinedGroups by groupRepository.joinedGroups.collectAsStateWithLifecycle(initialValue = emptyList())
@@ -246,13 +268,24 @@ fun GroupCard(
             )
 
             Column(modifier = Modifier.padding(14.dp)) {
-                Text(
-                    text = group.name,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = group.name,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    if (group.isPinned) {
+                        Icon(Icons.Default.PushPin, contentDescription = "Pinned", tint = ZunexPrimaryBlue, modifier = Modifier.size(16.dp))
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(4.dp))
 
@@ -313,6 +346,7 @@ fun GroupDetailScreen(
     groupRepository: GroupRepository,
     postRepository: PostRepository,
     onCreateGroupPostClick: (String) -> Unit,
+    onAdminToolsClick: (String) -> Unit,
     onMembersClick: (String) -> Unit,
     onPendingRequestsClick: (String) -> Unit,
     onSettingsClick: (String) -> Unit,
@@ -325,9 +359,45 @@ fun GroupDetailScreen(
     val group by groupRepository.getGroupById(groupId).collectAsStateWithLifecycle(initialValue = null)
     val groupPosts by postRepository.getGroupPosts(groupId).collectAsStateWithLifecycle(initialValue = emptyList())
     var selectedTab by remember { mutableIntStateOf(0) }
-    val coroutineScope = rememberCoroutineScope()
+    var selectedTopicFilter by remember { mutableStateOf("All") }
+    var showJoinedMenu by remember { mutableStateOf(false) }
+    var showCoverPicker by remember { mutableStateOf(false) }
+    var showAnonymousDisclaimer by remember { mutableStateOf(false) }
+    var showInviteDialog by remember { mutableStateOf(false) }
 
+    val coroutineScope = rememberCoroutineScope()
     val currentGroup = group
+
+    // Image Picker for Group Cover Photo
+    if (showCoverPicker && currentGroup != null) {
+        MediaPickerBottomSheet(
+            title = "Update Group Cover Photo",
+            presets = POPULAR_PRESET_IMAGES,
+            onPhotoSelected = { url ->
+                coroutineScope.launch {
+                    groupRepository.updateCoverPhoto(currentGroup.id, url)
+                }
+                showCoverPicker = false
+            },
+            onDismiss = { showCoverPicker = false }
+        )
+    }
+
+    // Invite Modal
+    if (showInviteDialog) {
+        AlertDialog(
+            onDismissRequest = { showInviteDialog = false },
+            title = { Text("Invite Friends to Group", fontWeight = FontWeight.Bold) },
+            text = {
+                Text("An invitation link to '${currentGroup?.name}' has been copied to your clipboard. You can send it directly to your friends.")
+            },
+            confirmButton = {
+                Button(onClick = { showInviteDialog = false }, colors = ButtonDefaults.buttonColors(containerColor = ZunexPrimaryBlue)) {
+                    Text("Done")
+                }
+            }
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -340,8 +410,8 @@ fun GroupDetailScreen(
                 },
                 actions = {
                     if (currentGroup?.userRole == "admin") {
-                        IconButton(onClick = { onSettingsClick(groupId) }) {
-                            Icon(Icons.Default.Settings, contentDescription = "Group Settings")
+                        IconButton(onClick = { onAdminToolsClick(groupId) }, modifier = Modifier.testTag("admin_tools_btn")) {
+                            Icon(Icons.Default.Shield, contentDescription = "Admin Tools", tint = ZunexPrimaryBlue)
                         }
                     }
                 },
@@ -355,27 +425,54 @@ fun GroupDetailScreen(
                 Text("Group not found")
             }
         } else {
+            val topicsList = listOf("All") + currentGroup.topics.split(",").map { it.trim() }.filter { it.isNotBlank() }
+            val filteredPosts = if (selectedTopicFilter == "All") {
+                groupPosts
+            } else {
+                groupPosts.filter { it.topic.equals(selectedTopicFilter, ignoreCase = true) }
+            }
+
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(innerPadding),
+                    .padding(innerPadding)
+                    .testTag("group_detail_view"),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // Group Header Banner
+                // 1. Group Header Banner & Cover Photo
                 item {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .background(MaterialTheme.colorScheme.surface)
                     ) {
-                        AsyncImage(
-                            model = currentGroup.coverPhotoUrl.ifBlank { "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1000&q=80" },
-                            contentDescription = "Cover",
-                            contentScale = ContentScale.Crop,
+                        Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(180.dp)
-                        )
+                                .height(190.dp)
+                        ) {
+                            AsyncImage(
+                                model = currentGroup.coverPhotoUrl.ifBlank { "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1000&q=80" },
+                                contentDescription = "Cover",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize()
+                            )
+
+                            // Edit Cover Photo Button (Camera icon overlay)
+                            if (currentGroup.userRole == "admin") {
+                                IconButton(
+                                    onClick = { showCoverPicker = true },
+                                    modifier = Modifier
+                                        .align(Alignment.BottomEnd)
+                                        .padding(12.dp)
+                                        .size(36.dp)
+                                        .background(Color.Black.copy(alpha = 0.65f), CircleShape)
+                                        .testTag("edit_group_cover_btn")
+                                ) {
+                                    Icon(Icons.Default.CameraAlt, contentDescription = "Edit Cover", tint = Color.White, modifier = Modifier.size(18.dp))
+                                }
+                            }
+                        }
 
                         Column(modifier = Modifier.padding(16.dp)) {
                             Text(
@@ -398,72 +495,124 @@ fun GroupDetailScreen(
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 Text(
-                                    text = "${currentGroup.privacy.replaceFirstChar { it.uppercase() }} Group • ${currentGroup.membersCount} members",
+                                    text = "${currentGroup.privacy.replaceFirstChar { it.uppercase() }} group · ${currentGroup.membersCount} members",
                                     fontSize = 13.sp,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
 
-                            Spacer(modifier = Modifier.height(12.dp))
+                            Spacer(modifier = Modifier.height(14.dp))
 
-                            // Action Buttons
+                            // Action Buttons Row (Joined dropdown, + Invite, Manage)
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Button(
-                                    onClick = {
-                                        if (currentUser != null) {
-                                            coroutineScope.launch {
-                                                if (currentGroup.isJoined) {
-                                                    groupRepository.leaveGroup(currentGroup, currentUser)
-                                                } else {
+                                Box(modifier = Modifier.weight(1.2f)) {
+                                    Button(
+                                        onClick = {
+                                            if (currentGroup.isJoined) {
+                                                showJoinedMenu = true
+                                            } else if (currentUser != null) {
+                                                coroutineScope.launch {
                                                     groupRepository.joinGroup(currentGroup, currentUser)
                                                 }
                                             }
-                                        }
-                                    },
-                                    modifier = Modifier.weight(1f),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = if (currentGroup.isJoined) MaterialTheme.colorScheme.surfaceVariant else ZunexPrimaryBlue
-                                    ),
-                                    shape = RoundedCornerShape(8.dp)
-                                ) {
-                                    Text(
-                                        text = if (currentGroup.isJoined) "Joined ✓" else "+ Join Group",
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (currentGroup.isJoined) MaterialTheme.colorScheme.onSurface else Color.White
-                                    )
-                                }
-
-                                if (currentGroup.isJoined) {
-                                    Button(
-                                        onClick = { onCreateGroupPostClick(groupId) },
-                                        modifier = Modifier.weight(1f),
-                                        colors = ButtonDefaults.buttonColors(containerColor = ZunexAccentGold),
+                                        },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = if (currentGroup.isJoined) MaterialTheme.colorScheme.surfaceVariant else ZunexPrimaryBlue
+                                        ),
                                         shape = RoundedCornerShape(8.dp)
                                     ) {
-                                        Text("+ Post", fontWeight = FontWeight.Bold, color = Color.Black)
+                                        Text(
+                                            text = if (currentGroup.isJoined) "Joined" else "+ Join Group",
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (currentGroup.isJoined) MaterialTheme.colorScheme.onSurface else Color.White
+                                        )
+                                        if (currentGroup.isJoined) {
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Icon(Icons.Default.KeyboardArrowDown, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface)
+                                        }
+                                    }
+
+                                    // Joined Dropdown Menu (Leave, Notifications, Pin)
+                                    DropdownMenu(
+                                        expanded = showJoinedMenu,
+                                        onDismissRequest = { showJoinedMenu = false }
+                                    ) {
+                                        DropdownMenuItem(
+                                            text = { Text("Manage Notifications") },
+                                            leadingIcon = { Icon(Icons.Default.Notifications, contentDescription = null) },
+                                            onClick = { showJoinedMenu = false }
+                                        )
+                                        DropdownMenuItem(
+                                            text = { Text(if (currentGroup.isPinned) "Unpin Group" else "Pin Group to Shortcuts") },
+                                            leadingIcon = { Icon(Icons.Default.PushPin, contentDescription = null) },
+                                            onClick = {
+                                                showJoinedMenu = false
+                                                coroutineScope.launch {
+                                                    groupRepository.togglePinGroup(currentGroup.id, !currentGroup.isPinned)
+                                                }
+                                            }
+                                        )
+                                        HorizontalDivider()
+                                        DropdownMenuItem(
+                                            text = { Text("Leave Group", color = Color(0xFFE53935)) },
+                                            leadingIcon = { Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = null, tint = Color(0xFFE53935)) },
+                                            onClick = {
+                                                showJoinedMenu = false
+                                                if (currentUser != null) {
+                                                    coroutineScope.launch {
+                                                        groupRepository.leaveGroup(currentGroup, currentUser)
+                                                    }
+                                                }
+                                            }
+                                        )
+                                    }
+                                }
+
+                                Button(
+                                    onClick = { showInviteDialog = true },
+                                    modifier = Modifier.weight(1f),
+                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Text("+ Invite", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                                }
+
+                                if (currentGroup.userRole == "admin") {
+                                    Button(
+                                        onClick = { onAdminToolsClick(groupId) },
+                                        modifier = Modifier.weight(1f),
+                                        colors = ButtonDefaults.buttonColors(containerColor = ZunexPrimaryBlue.copy(alpha = 0.12f)),
+                                        shape = RoundedCornerShape(8.dp)
+                                    ) {
+                                        Icon(Icons.Default.Shield, contentDescription = null, tint = ZunexPrimaryBlue, modifier = Modifier.size(16.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("Manage", fontWeight = FontWeight.Bold, color = ZunexPrimaryBlue)
                                     }
                                 }
                             }
 
-                            // Admin Manage Quick Action
-                            if (currentGroup.userRole == "admin") {
-                                Spacer(modifier = Modifier.height(8.dp))
-                                OutlinedButton(
-                                    onClick = { onPendingRequestsClick(groupId) },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    shape = RoundedCornerShape(8.dp)
+                            // Group Paused Warning Banner
+                            if (currentGroup.isPaused) {
+                                Spacer(modifier = Modifier.height(10.dp))
+                                Card(
+                                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF3E0)),
+                                    shape = RoundedCornerShape(8.dp),
+                                    modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    Icon(Icons.Default.AdminPanelSettings, contentDescription = null, tint = ZunexPrimaryBlue)
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Admin: Manage Member Requests", color = ZunexPrimaryBlue, fontWeight = FontWeight.Bold)
+                                    Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(Icons.Default.Pause, contentDescription = null, tint = Color(0xFFE65100))
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text("This group is paused by admins. New posts are temporarily disabled.", fontSize = 12.sp, color = Color(0xFFE65100))
+                                    }
                                 }
                             }
                         }
 
-                        // Group Navigation Bar (Discussion, Members, Media, About)
+                        // Group Navigation Bar (Discussion, Featured, Members, Photos, About)
                         ScrollableTabRow(
                             selectedTabIndex = selectedTab,
                             containerColor = MaterialTheme.colorScheme.surface,
@@ -478,8 +627,119 @@ fun GroupDetailScreen(
                 }
 
                 if (selectedTab == 0) {
-                    // Group Feed
-                    if (groupPosts.isEmpty()) {
+                    // 2. Group Topics Filter Bar
+                    if (topicsList.size > 1) {
+                        item {
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                                shape = RoundedCornerShape(0.dp)
+                            ) {
+                                Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)) {
+                                    Text("Topics in this group", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        items(topicsList) { topic ->
+                                            FilterChip(
+                                                selected = selectedTopicFilter == topic,
+                                                onClick = { selectedTopicFilter = topic },
+                                                label = { Text(topic, fontWeight = FontWeight.SemiBold) }
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // 3. "Write something..." Group Post Bar
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                            shape = RoundedCornerShape(0.dp)
+                        ) {
+                            Column {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    AsyncImage(
+                                        model = currentUser?.avatarUrl?.ifBlank { "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&q=80" },
+                                        contentDescription = null,
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier
+                                            .size(38.dp)
+                                            .clip(CircleShape)
+                                    )
+
+                                    Spacer(modifier = Modifier.width(10.dp))
+
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clip(RoundedCornerShape(20.dp))
+                                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                                            .clickable { onCreateGroupPostClick(groupId) }
+                                            .padding(horizontal = 16.dp, vertical = 10.dp)
+                                    ) {
+                                        Text("Write something...", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
+                                    }
+                                }
+
+                                HorizontalDivider(modifier = Modifier.padding(horizontal = 14.dp), thickness = 0.6.dp)
+
+                                // Quick Group Actions (Photo, Anonymous Post, Feeling)
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 14.dp, vertical = 8.dp),
+                                    horizontalArrangement = Arrangement.SpaceEvenly
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(6.dp))
+                                            .clickable { onCreateGroupPostClick(groupId) }
+                                            .padding(horizontal = 10.dp, vertical = 6.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Icon(Icons.Default.PhotoLibrary, contentDescription = null, tint = Color(0xFF4CAF50), modifier = Modifier.size(18.dp))
+                                        Text("Photo", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                                    }
+
+                                    Row(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(6.dp))
+                                            .clickable { onCreateGroupPostClick(groupId) }
+                                            .padding(horizontal = 10.dp, vertical = 6.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Icon(Icons.Default.Shield, contentDescription = null, tint = Color(0xFF2E7D32), modifier = Modifier.size(18.dp))
+                                        Text("Anonymous Post", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                                    }
+
+                                    Row(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(6.dp))
+                                            .clickable { onCreateGroupPostClick(groupId) }
+                                            .padding(horizontal = 10.dp, vertical = 6.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Icon(Icons.Default.EmojiEmotions, contentDescription = null, tint = Color(0xFFFFA000), modifier = Modifier.size(18.dp))
+                                        Text("Feeling", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // 4. Group Feed List
+                    if (filteredPosts.isEmpty()) {
                         item {
                             Card(
                                 modifier = Modifier
@@ -491,7 +751,7 @@ fun GroupDetailScreen(
                                     modifier = Modifier.padding(24.dp),
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
-                                    Text("No posts in this group yet", fontWeight = FontWeight.Bold)
+                                    Text("No posts in this topic yet", fontWeight = FontWeight.Bold)
                                     Spacer(modifier = Modifier.height(8.dp))
                                     Button(onClick = { onCreateGroupPostClick(groupId) }, colors = ButtonDefaults.buttonColors(containerColor = ZunexPrimaryBlue)) {
                                         Text("Write First Post")
@@ -500,7 +760,7 @@ fun GroupDetailScreen(
                             }
                         }
                     } else {
-                        items(groupPosts, key = { it.id }) { post ->
+                        items(filteredPosts, key = { it.id }) { post ->
                             PostCard(
                                 post = post,
                                 currentUserId = currentUser?.id ?: "",
@@ -546,11 +806,188 @@ fun GroupDetailScreen(
                                 HorizontalDivider()
                                 Spacer(modifier = Modifier.height(16.dp))
 
-                                Text("Group Rules", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                                Text("Group Rules from Admins", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                                 Spacer(modifier = Modifier.height(8.dp))
-                                Text(currentGroup.rules, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(currentGroup.rules, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, lineHeight = 20.sp)
+
+                                Spacer(modifier = Modifier.height(16.dp))
+                                HorizontalDivider()
+                                Spacer(modifier = Modifier.height(16.dp))
+
+                                Text("Group History", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text("• Created on Zunex Network\n• Privacy: ${currentGroup.privacy.replaceFirstChar { it.uppercase() }}\n• Members: ${currentGroup.membersCount}", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun GroupAdminToolsScreen(
+    groupId: String,
+    groupRepository: GroupRepository,
+    onSettingsClick: (String) -> Unit,
+    onPendingRequestsClick: (String) -> Unit,
+    onNavigateBack: () -> Unit
+) {
+    val group by groupRepository.getGroupById(groupId).collectAsStateWithLifecycle(initialValue = null)
+    val coroutineScope = rememberCoroutineScope()
+    val g = group
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Admin Tools", fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                }
+            )
+        }
+    ) { innerPadding ->
+        if (g == null) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("Loading...")
+            }
+        } else {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .verticalScroll(rememberScrollState())
+                    .padding(16.dp)
+            ) {
+                // Insights & Activity Card (28-day Growth)
+                Text("Insights & Activity (Last 28 days)", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Card(
+                        modifier = Modifier.weight(1f),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Text("Posts", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("34", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                            Text("-75% vs last 28 days", fontSize = 11.sp, color = Color(0xFFE53935))
+                        }
+                    }
+
+                    Card(
+                        modifier = Modifier.weight(1f),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Text("Comments", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("28", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                            Text("+0% vs last 28 days", fontSize = 11.sp, color = Color.Gray)
+                        }
+                    }
+
+                    Card(
+                        modifier = Modifier.weight(1f),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Text("Reactions", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("312", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                            Text("+525%", fontSize = 11.sp, color = Color(0xFF2E7D32), fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // Admin To-Do Items
+                Text("To-Do List", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                ) {
+                    Column {
+                        ListItem(
+                            headlineContent = { Text("Member Requests (${g.pendingRequestsCount})", fontWeight = FontWeight.SemiBold) },
+                            supportingContent = { Text("Review pending users wanting to join") },
+                            leadingContent = { Icon(Icons.Default.Group, contentDescription = null, tint = ZunexPrimaryBlue) },
+                            modifier = Modifier.clickable { onPendingRequestsClick(groupId) }
+                        )
+                        HorizontalDivider()
+                        ListItem(
+                            headlineContent = { Text("Group Quality", fontWeight = FontWeight.SemiBold) },
+                            supportingContent = { Text("No policy violations detected") },
+                            leadingContent = { Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF2E7D32)) }
+                        )
+                        HorizontalDivider()
+                        ListItem(
+                            headlineContent = { Text("Moderation Alerts", fontWeight = FontWeight.SemiBold) },
+                            supportingContent = { Text("0 keywords triggered") },
+                            leadingContent = { Icon(Icons.Default.Warning, contentDescription = null, tint = Color(0xFFFFA000)) }
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // Group Admin Controls & Settings
+                Text("Group Tools & Controls", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                ) {
+                    Column {
+                        ListItem(
+                            headlineContent = { Text("Group Settings", fontWeight = FontWeight.SemiBold) },
+                            supportingContent = { Text("Edit name, description, cover photo and rules") },
+                            leadingContent = { Icon(Icons.Default.Settings, contentDescription = null) },
+                            modifier = Modifier.clickable { onSettingsClick(groupId) }
+                        )
+                        HorizontalDivider()
+                        ListItem(
+                            headlineContent = { Text("Pause Group", fontWeight = FontWeight.SemiBold) },
+                            supportingContent = { Text("Temporarily prevent members from creating new posts") },
+                            leadingContent = { Icon(Icons.Default.Pause, contentDescription = null, tint = Color(0xFFE65100)) },
+                            trailingContent = {
+                                Switch(
+                                    checked = g.isPaused,
+                                    onCheckedChange = {
+                                        coroutineScope.launch {
+                                            groupRepository.togglePauseGroup(g.id, it)
+                                        }
+                                    }
+                                )
+                            }
+                        )
+                        HorizontalDivider()
+                        ListItem(
+                            headlineContent = { Text("Pin Group to Top", fontWeight = FontWeight.SemiBold) },
+                            supportingContent = { Text("Keep at top of your shortcuts") },
+                            leadingContent = { Icon(Icons.Default.PushPin, contentDescription = null, tint = ZunexPrimaryBlue) },
+                            trailingContent = {
+                                Switch(
+                                    checked = g.isPinned,
+                                    onCheckedChange = {
+                                        coroutineScope.launch {
+                                            groupRepository.togglePinGroup(g.id, it)
+                                        }
+                                    }
+                                )
+                            }
+                        )
                     }
                 }
             }
@@ -571,7 +1008,8 @@ fun CreateGroupScreen(
     var category by remember { mutableStateOf("General") }
     var privacy by remember { mutableStateOf("public") }
     var requireApproval by remember { mutableStateOf(false) }
-    var rules by remember { mutableStateOf("1. Be respectful\n2. No spam\n3. Relevant topics only") }
+    var rules by remember { mutableStateOf("1. Be respectful\n2. No spam or self-promotion\n3. Relevant jobs and travel topics only") }
+    var topics by remember { mutableStateOf("jobs and job, travel, Announcements, general") }
     var isCreating by remember { mutableStateOf(false) }
 
     val coroutineScope = rememberCoroutineScope()
@@ -637,6 +1075,27 @@ fun CreateGroupScreen(
                     leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(16.dp)) }
                 )
             }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            OutlinedTextField(
+                value = topics,
+                onValueChange = { topics = it },
+                label = { Text("Group Topics (comma separated)") },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(10.dp)
+            )
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            OutlinedTextField(
+                value = rules,
+                onValueChange = { rules = it },
+                label = { Text("Group Rules") },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(10.dp),
+                maxLines = 4
+            )
 
             Spacer(modifier = Modifier.height(14.dp))
 
@@ -852,6 +1311,7 @@ fun GroupSettingsScreen(
     var description by remember { mutableStateOf("") }
     var requireApproval by remember { mutableStateOf(false) }
     var rules by remember { mutableStateOf("") }
+    var topics by remember { mutableStateOf("") }
     var isLoaded by remember { mutableStateOf(false) }
 
     val currentGroup = group
@@ -860,6 +1320,7 @@ fun GroupSettingsScreen(
         description = currentGroup.description
         requireApproval = currentGroup.requirePostApproval
         rules = currentGroup.rules
+        topics = currentGroup.topics
         isLoaded = true
     }
 
@@ -919,6 +1380,13 @@ fun GroupSettingsScreen(
                 label = { Text("Description") },
                 modifier = Modifier.fillMaxWidth(),
                 maxLines = 4
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            OutlinedTextField(
+                value = topics,
+                onValueChange = { topics = it },
+                label = { Text("Group Topics (comma separated)") },
+                modifier = Modifier.fillMaxWidth()
             )
             Spacer(modifier = Modifier.height(12.dp))
             OutlinedTextField(

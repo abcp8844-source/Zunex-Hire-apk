@@ -17,6 +17,10 @@ sealed class Screen(val route: String) {
     object CreatePost : Screen("create_post?groupId={groupId}") {
         fun createRoute(groupId: String? = null) = if (groupId != null) "create_post?groupId=$groupId" else "create_post"
     }
+    object CreateStory : Screen("create_story")
+    object StoryViewer : Screen("story_viewer/{storyId}") {
+        fun createRoute(storyId: String) = "story_viewer/$storyId"
+    }
     object EditPost : Screen("edit_post/{postId}") {
         fun createRoute(postId: String) = "edit_post/$postId"
     }
@@ -32,6 +36,8 @@ sealed class Screen(val route: String) {
         fun createRoute(userId: String) = "profile/$userId"
     }
     object EditProfile : Screen("edit_profile")
+    object LockProfile : Screen("lock_profile")
+    object ProfessionalDashboard : Screen("professional_dashboard")
     object FriendsList : Screen("friends_list/{userId}") {
         fun createRoute(userId: String) = "friends_list/$userId"
     }
@@ -58,13 +64,26 @@ sealed class Screen(val route: String) {
     object GroupSettings : Screen("group_settings/{groupId}") {
         fun createRoute(groupId: String) = "group_settings/$groupId"
     }
+    object GroupAdminTools : Screen("group_admin_tools/{groupId}") {
+        fun createRoute(groupId: String) = "group_admin_tools/$groupId"
+    }
     object GroupMedia : Screen("group_media/{groupId}") {
         fun createRoute(groupId: String) = "group_media/$groupId"
     }
 
-    // Search & Menu
+    // Search & Menu & Deep Settings
     object GlobalSearch : Screen("global_search")
+    object SavedPosts : Screen("saved_posts")
     object Settings : Screen("settings")
+    object SettingsPersonalDetails : Screen("settings_personal_details")
+    object SettingsPasswordSecurity : Screen("settings_password_security")
+    object SettingsBlocking : Screen("settings_blocking")
+    object SettingsSecurity : Screen("settings_security")
+    object SettingsPrivacy : Screen("settings_privacy")
+    object SettingsAudience : Screen("settings_audience")
+    object SettingsPermissions : Screen("settings_permissions")
+    object SettingsPayments : Screen("settings_payments")
+
     object ActivityLog : Screen("activity_log")
     object BlockedUsers : Screen("blocked_users")
     object HelpSupport : Screen("help_support")

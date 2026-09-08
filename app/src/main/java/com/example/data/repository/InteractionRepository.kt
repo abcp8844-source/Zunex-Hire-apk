@@ -9,6 +9,7 @@ class InteractionRepository(private val db: AppDatabase) {
 
     val notifications: Flow<List<NotificationEntity>> = db.interactionDao().getAllNotifications()
     val unreadCount: Flow<Int> = db.interactionDao().getUnreadCount()
+    val unreadNotificationsCount: Flow<Int> get() = unreadCount
     val activityLogs: Flow<List<ActivityLogEntity>> = db.interactionDao().getActivityLogs()
 
     suspend fun markAsRead(notificationId: String) {

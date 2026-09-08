@@ -86,8 +86,9 @@ fun PostCard(
     onCommentClick: () -> Unit,
     onReactionToggle: (String) -> Unit,
     onShareClick: () -> Unit,
-    onEditClick: () -> Unit,
-    onDeleteClick: () -> Unit,
+    onEditClick: () -> Unit = {},
+    onDeleteClick: () -> Unit = {},
+    onSaveClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var showMenuSheet by remember { mutableStateOf(false) }
@@ -510,7 +511,7 @@ fun CommentItem(
     comment: CommentEntity,
     onAuthorClick: (String) -> Unit,
     onLikeToggle: () -> Unit,
-    onReplyClick: () -> Unit,
+    onReplyClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Row(

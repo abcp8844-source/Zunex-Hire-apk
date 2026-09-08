@@ -145,7 +145,10 @@ class GroupRepository(private val db: AppDatabase) {
         description: String,
         privacy: String,
         requireApproval: Boolean,
-        rules: String
+        rules: String,
+        allowAnonymousPosts: Boolean = group.allowAnonymousPosts,
+        topics: String = group.topics,
+        coverPhotoUrl: String = group.coverPhotoUrl
     ) {
         db.groupDao().updateGroup(
             group.copy(
@@ -153,8 +156,36 @@ class GroupRepository(private val db: AppDatabase) {
                 description = description,
                 privacy = privacy,
                 requirePostApproval = requireApproval,
-                rules = rules
+                rules = rules,
+                allowAnonymousPosts = allowAnonymousPosts,
+                topics = topics,
+                coverPhotoUrl = coverPhotoUrl
             )
         )
+    }
+
+    suspend fun togglePinGroup(group: GroupEntity) {
+        db.groupDao().updateGroup(group.copy(isPinned = !group.isPinned))
+    }
+
+    suspend fun togglePinGroup(groupId: String, isPinned: Boolean) {
+        val group = db.groupDao().getGroupByIdDirect(groupId) ?: return
+        db.groupDao().updateGroup(group.copy(isPinned = isPinned))
+    }
+
+    suspend fun togglePauseGroup(group: GroupEntity) {
+        db.groupDao().updateGroup(group.copy(isPaused = !group.isPaused))
+    }
+
+    suspend fun togglePauseGroup(groupId: String, isPaused: Boolean) {
+        val group = db.groupDao().getGroupByIdDirect(groupId) ?: return
+        db.groupDao().updateGroup(group.copy(isPaused = isPaused))
+    }
+
+    suspend fun updateCoverPhoto(groupId: String, coverPhotoUrl: String) {
+        val group = db.groupDao().getGroupByIdDirect(groupId)
+        if (group != null) {
+            db.groupDao().updateGroup(group.copy(coverPhotoUrl = coverPhotoUrl))
+        }
     }
 }

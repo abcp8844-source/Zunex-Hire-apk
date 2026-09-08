@@ -13,6 +13,7 @@ import com.example.data.model.GroupEntity
 import com.example.data.model.GroupMemberEntity
 import com.example.data.model.NotificationEntity
 import com.example.data.model.PostEntity
+import com.example.data.model.StoryEntity
 import com.example.data.model.UserEntity
 
 @Database(
@@ -22,13 +23,14 @@ import com.example.data.model.UserEntity
         CommentEntity::class,
         GroupEntity::class,
         GroupMemberEntity::class,
+        StoryEntity::class,
         FriendRequestEntity::class,
         FriendshipEntity::class,
         NotificationEntity::class,
         ActivityLogEntity::class,
         BlockedUserEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -36,6 +38,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun postDao(): PostDao
     abstract fun groupDao(): GroupDao
     abstract fun interactionDao(): InteractionDao
+    abstract fun storyDao(): StoryDao
 
     companion object {
         @Volatile

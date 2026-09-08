@@ -5,6 +5,7 @@ import com.example.data.model.ActivityLogEntity
 import com.example.data.model.CommentEntity
 import com.example.data.model.NotificationEntity
 import com.example.data.model.PostEntity
+import com.example.data.model.StoryEntity
 import com.example.data.model.UserEntity
 import kotlinx.coroutines.flow.Flow
 import java.util.UUID
@@ -12,6 +13,15 @@ import java.util.UUID
 class PostRepository(private val db: AppDatabase) {
 
     val feedPosts: Flow<List<PostEntity>> = db.postDao().getFeedPosts()
+    val stories: Flow<List<StoryEntity>> = db.storyDao().getAllStories()
+    val savedPosts: Flow<List<PostEntity>> = db.postDao().getSavedPosts()
+
+    fun getSavedPosts(userId: String = ""): Flow<List<PostEntity>> = db.postDao().getSavedPosts()
+
+    suspend fun toggleSavePost(post: PostEntity) {
+        val updated = post.copy(isSaved = !post.isSaved)
+        db.postDao().updatePost(updated)
+    }
 
     fun getUserPosts(authorId: String): Flow<List<PostEntity>> = db.postDao().getUserPosts(authorId)
 
@@ -25,27 +35,55 @@ class PostRepository(private val db: AppDatabase) {
 
     fun searchPosts(query: String): Flow<List<PostEntity>> = db.postDao().searchPosts(query)
 
+    suspend fun createStory(
+        currentUser: UserEntity,
+        mediaUrl: String,
+        caption: String = ""
+    ) {
+        val story = StoryEntity(
+            id = "story_${UUID.randomUUID().toString().take(8)}",
+            authorId = currentUser.id,
+            authorName = currentUser.name,
+            authorAvatar = currentUser.avatarUrl,
+            mediaUrl = mediaUrl,
+            caption = caption,
+            createdAt = System.currentTimeMillis()
+        )
+        db.storyDao().insertStory(story)
+        db.interactionDao().insertActivityLog(
+            ActivityLogEntity(
+                id = UUID.randomUUID().toString(),
+                actionType = "story_created",
+                description = "Added a photo to your Story"
+            )
+        )
+    }
+
     suspend fun createPost(
         currentUser: UserEntity,
         content: String,
         photoUrl: String? = null,
         backgroundColorHex: String? = null,
         privacy: String = "public",
+        isAnonymous: Boolean = false,
+        topic: String? = null,
         groupId: String? = null,
         groupName: String? = null
     ): String {
         val postId = "post_${UUID.randomUUID().toString().take(8)}"
         val post = PostEntity(
             id = postId,
-            authorId = currentUser.id,
-            authorName = currentUser.name,
-            authorAvatar = currentUser.avatarUrl,
+            authorId = if (isAnonymous) "anon_${UUID.randomUUID().toString().take(4)}" else currentUser.id,
+            authorName = if (isAnonymous) "Anonymous participant" else currentUser.name,
+            authorAvatar = if (isAnonymous) "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=400&q=80" else currentUser.avatarUrl,
             groupId = groupId,
             groupName = groupName,
             content = content,
             photoUrl = photoUrl,
             backgroundColorHex = backgroundColorHex,
             privacy = privacy,
+            isAnonymous = isAnonymous,
+            topic = topic,
             createdAt = System.currentTimeMillis()
         )
         db.postDao().insertPost(post)
