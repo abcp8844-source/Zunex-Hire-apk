@@ -1,6 +1,0 @@
-{
-  "name": "Zunex - Facebook Style App",
-  "description": "Facebook-style social networking app with posts, text & photo feeds, full group system, comments, likes, profile and friend management with Room database.",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}
