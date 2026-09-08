@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, FlatList, StyleSheet, TouchableOpacity, Text } from 'react-native';
-import { Header } from '../../components/Header';
+import { Header } from '../../../components/Header';
 import { PostCard } from './PostCard';
 import { CreatePostScreen } from './CreatePostScreen';
 import { fetchFeedPosts } from '../../services/postService';
