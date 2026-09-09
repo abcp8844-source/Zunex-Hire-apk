@@ -26,6 +26,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
     if (err) {
       setError(err.message);
     }
+    // Note: Successful login automatically triggers session state change in App.tsx
   };
 
   return (
@@ -68,64 +69,67 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.background || '#f9fafb',
     justifyContent: 'center',
     padding: theme.spacing.md,
   },
   formContainer: {
-    backgroundColor: theme.colors.card,
+    backgroundColor: theme.colors.card || '#ffffff',
     padding: theme.spacing.lg,
     borderRadius: 8,
-    ...theme.shadows.card,
+    borderWidth: 1,
+    borderColor: theme.colors.border || '#e5e7eb',
   },
   title: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: theme.colors.primary,
+    color: theme.colors.primary || '#1e293b',
     textAlign: 'center',
     marginBottom: theme.spacing.lg,
   },
   errorText: {
-    color: theme.colors.notification,
+    color: theme.colors.notification || '#ef4444',
     marginBottom: theme.spacing.sm,
     textAlign: 'center',
   },
   input: {
     height: 50,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: theme.colors.border || '#e5e7eb',
     borderRadius: 6,
     paddingHorizontal: theme.spacing.md,
     marginBottom: theme.spacing.md,
     fontSize: theme.typography.fontSizes.md,
     color: theme.colors.text,
+    backgroundColor: theme.colors.background || '#f9fafb',
   },
   loginButton: {
     height: 50,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.primary || '#1e293b',
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 6,
     marginBottom: theme.spacing.md,
   },
   loginButtonText: {
-    color: theme.colors.white,
+    color: '#ffffff',
     fontSize: theme.typography.fontSizes.md,
     fontWeight: 'bold',
   },
   forgotText: {
-    color: theme.colors.primary,
+    color: theme.colors.primary || '#1e293b',
     textAlign: 'center',
     marginBottom: theme.spacing.lg,
+    fontWeight: '500',
   },
   divider: {
     height: 1,
-    backgroundColor: theme.colors.border,
+    backgroundColor: theme.colors.border || '#e5e7eb',
     marginBottom: theme.spacing.lg,
   },
   registerButton: {
     height: 48,
-    backgroundColor: theme.colors.success,
+    backgroundColor: theme.colors.success || '#10b981',
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 6,
@@ -133,7 +137,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.lg,
   },
   registerButtonText: {
-    color: theme.colors.white,
+    color: '#ffffff',
     fontSize: theme.typography.fontSizes.md,
     fontWeight: 'bold',
   },
