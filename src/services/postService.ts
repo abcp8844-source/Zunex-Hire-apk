@@ -3,41 +3,37 @@ import { supabase } from './authService';
 export const fetchFeedPosts = async () => {
   const { data, error } = await supabase
     .from('posts')
-    .select('*, profiles(full_name, avatar_url), likes(count), comments(count)')
+    .select('*, profiles(full_name, avatar_url), likes(count), comments(count), shares(count)')
     .order('created_at', { ascending: false });
 
-  if (error) {
-    console.error('Error fetching posts:', error);
-    return [];
-  }
-  return data;
+  if (error) throw error;
+  return data || [];
 };
 
 export const createPost = async (content: string, imageUrl?: string, groupId?: string) => {
   const user = (await supabase.auth.getUser()).data.user;
-  if (!user) return null;
+  if (!user) throw new Error('Authentication required');
 
   const { data, error } = await supabase.from('posts').insert([
     {
       user_id: user.id,
-      content,
+      content: content.trim(),
       image_url: imageUrl || null,
       group_id: groupId || null,
     },
-  ]);
+  ]).select();
 
   if (error) throw error;
   return data;
 };
 
-export const toggleLike = async (postId: string) => {
+export const toggleLike = async (postId: string, postOwnerId: string) => {
   const user = (await supabase.auth.getUser()).data.user;
   if (!user) return;
 
-  // چیک کریں کہ کیا پہلے سے لائک ہے یا نہیں
   const { data: existing } = await supabase
     .from('likes')
-    .select('*')
+    .select('id')
     .eq('post_id', postId)
     .eq('user_id', user.id)
     .single();
@@ -46,6 +42,18 @@ export const toggleLike = async (postId: string) => {
     await supabase.from('likes').delete().eq('post_id', postId).eq('user_id', user.id);
   } else {
     await supabase.from('likes').insert([{ post_id: postId, user_id: user.id }]);
+
+    if (postOwnerId && postOwnerId !== user.id) {
+      await supabase.from('notifications').insert([
+        {
+          receiver_id: postOwnerId,
+          sender_id: user.id,
+          type: 'like',
+          content: 'liked your post.',
+          reference_id: postId,
+        },
+      ]);
+    }
   }
 };
 
@@ -56,34 +64,61 @@ export const fetchComments = async (postId: string) => {
     .eq('post_id', postId)
     .order('created_at', { ascending: true });
 
-  if (error) return [];
-  return data;
+  if (error) throw error;
+  return data || [];
 };
 
-export const addComment = async (postId: string, text: string) => {
+export const addComment = async (postId: string, text: string, postOwnerId: string) => {
   const user = (await supabase.auth.getUser()).data.user;
-  if (!user) return null;
+  if (!user) throw new Error('Authentication required');
 
   const { data, error } = await supabase.from('comments').insert([
     {
       post_id: postId,
       user_id: user.id,
-      content: text,
+      content: text.trim(),
     },
-  ]);
+  ]).select();
 
   if (error) throw error;
+
+  if (postOwnerId && postOwnerId !== user.id) {
+    await supabase.from('notifications').insert([
+      {
+        receiver_id: postOwnerId,
+        sender_id: user.id,
+        type: 'comment',
+        content: 'commented on your post.',
+        reference_id: postId,
+      },
+    ]);
+  }
+
   return data;
 };
 
-export const sharePost = async (postId: string) => {
+export const sharePost = async (postId: string, postOwnerId: string) => {
   const user = (await supabase.auth.getUser()).data.user;
   if (!user) return;
 
-  await supabase.from('shares').insert([
+  const { error } = await supabase.from('shares').insert([
     {
       post_id: postId,
       user_id: user.id,
     },
   ]);
+
+  if (error) throw error;
+
+  if (postOwnerId && postOwnerId !== user.id) {
+    await supabase.from('notifications').insert([
+      {
+        receiver_id: postOwnerId,
+        sender_id: user.id,
+        type: 'share',
+        content: 'shared your post.',
+        reference_id: postId,
+      },
+    ]);
+  }
 };
