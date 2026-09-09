@@ -66,11 +66,13 @@ export const fetchPendingPosts = async (groupId: string) => {
 };
 
 export const approvePost = async (postId: string) => {
-  await supabase.from('posts').update({ is_approved: true }).eq('id', postId);
+  const { error } = await supabase.from('posts').update({ is_approved: true }).eq('id', postId);
+  if (error) throw error;
 };
 
 export const updateGroupSettings = async (groupId: string, settings: any) => {
-  await supabase.from('groups').update(settings).eq('id', groupId);
+  const { error } = await supabase.from('groups').update(settings).eq('id', groupId);
+  if (error) throw error;
 };
 
 export const fetchScheduledPosts = async (groupId: string) => {
