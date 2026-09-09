@@ -27,7 +27,7 @@ export const Header: React.FC<HeaderProps> = ({ onSearchPress, onMenuPress }) =>
           </TouchableOpacity>
         )}
         {onMenuPress && (
-          <TouchableOpacity style.actionButton} onPress={onMenuPress} activeOpacity={0.7}>
+          <TouchableOpacity style={styles.actionButton} onPress={onMenuPress} activeOpacity={0.7}>
             <Ionicons name="menu-outline" size={22} color={theme.colors.text} />
           </TouchableOpacity>
         )}
