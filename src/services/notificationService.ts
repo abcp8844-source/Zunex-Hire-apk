@@ -10,10 +10,7 @@ export const fetchNotifications = async () => {
     .eq('receiver_id', user.id)
     .order('created_at', { ascending: false });
 
-  if (error) {
-    console.error('Error fetching notifications:', error);
-    return [];
-  }
+  if (error) return [];
   return data;
 };
 
@@ -23,7 +20,28 @@ export const markNotificationAsRead = async (notificationId: string) => {
     .update({ is_read: true })
     .eq('id', notificationId);
 
-  if (error) {
-    console.error('Error updating notification:', error);
-  }
+  if (error) throw error;
+};
+
+export const sendNotification = async (
+  receiverId: string, 
+  type: 'like' | 'comment' | 'friend_request' | 'group_invite' | 'post_approval', 
+  content: string, 
+  referenceId?: string
+) => {
+  const user = (await supabase.auth.getUser()).data.user;
+  if (!user || user.id === receiverId) return;
+
+  const { error } = await supabase.from('notifications').insert([
+    {
+      receiver_id: receiverId,
+      sender_id: user.id,
+      type,
+      content,
+      reference_id: referenceId || null,
+      is_read: false,
+    },
+  ]);
+
+  if (error) throw error;
 };
