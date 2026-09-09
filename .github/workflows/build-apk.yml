@@ -24,7 +24,7 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Clean Install Dependencies
+      - name: Install Dependencies
         run: |
           npm cache clean --force
           rm -f package-lock.json
@@ -35,8 +35,12 @@ jobs:
           echo "EXPO_PUBLIC_SUPABASE_URL=${{ secrets.SUPABASE_URL }}" >> .env
           echo "EXPO_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}" >> .env
 
-      - name: Generate Native Android Environment
-        run: npx expo prebuild --platform android --clean
+      - name: Generate Android Environment & Fix Versions
+        run: |
+          npx expo prebuild --platform android --clean
+          if [ -f "android/build.gradle" ]; then
+            sed -i 's/1.9.24/1.9.25/g' android/build.gradle || true
+          fi
 
       - name: Build Android Release APK
         run: |
