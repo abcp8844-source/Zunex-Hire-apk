@@ -35,10 +35,12 @@ jobs:
           echo "EXPO_PUBLIC_SUPABASE_URL=${{ secrets.SUPABASE_URL }}" >> .env
           echo "EXPO_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}" >> .env
 
-      - name: Generate Android Environment & Force Fix Kotlin
+      - name: Generate Android Environment & Bypass Kotlin Check
         run: |
           npx expo prebuild --platform android --clean
-          find . -type f \( -name "*.gradle" -o -name "*.kts" -o -name "*.properties" \) -exec sed -i 's/1.9.24/1.9.25/g' {} +
+          echo "kotlin.version=1.9.24" >> android/gradle.properties
+          echo "android.kotlinVersion=1.9.24" >> android/gradle.properties
+          echo "compose.compiler.suppressKotlinVersionCompatibilityCheck=1.9.24" >> android/gradle.properties
 
       - name: Build Android Release APK
         run: |
