@@ -27,20 +27,12 @@ jobs:
       - name: Install Dependencies
         run: |
           npm cache clean --force
-          rm -f package-lock.json
           npm install --legacy-peer-deps
 
       - name: Make env file from GitHub Secrets
         run: |
           echo "EXPO_PUBLIC_SUPABASE_URL=${{ secrets.SUPABASE_URL }}" >> .env
           echo "EXPO_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}" >> .env
-
-      - name: Generate Android Environment & Bypass Kotlin Check
-        run: |
-          npx expo prebuild --platform android --clean
-          echo "kotlin.version=1.9.24" >> android/gradle.properties
-          echo "android.kotlinVersion=1.9.24" >> android/gradle.properties
-          echo "compose.compiler.suppressKotlinVersionCompatibilityCheck=1.9.24" >> android/gradle.properties
 
       - name: Build Android Release APK
         run: |
