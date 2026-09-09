@@ -15,7 +15,7 @@ export const Header: React.FC<HeaderProps> = ({ onSearchPress, onMenuPress }) =>
         <View style={styles.logoGroup}>
           <View style={styles.planeBox}>
             <Image 
-              source={require('../../../assets/images/favicon.ico')} 
+              source={require('../assets/images/favicon.ico')} 
               style={styles.logoImage} 
             />
           </View>
