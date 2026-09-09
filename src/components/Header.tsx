@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -14,10 +14,7 @@ export const Header: React.FC<HeaderProps> = ({ onSearchPress, onMenuPress }) =>
       <View style={styles.container}>
         <View style={styles.logoGroup}>
           <View style={styles.planeBox}>
-            <Image 
-              source={require('../assets/images/favicon.ico')} 
-              style={styles.logoImage} 
-            />
+            <Ionicons name="airplane" size={24} color="#ff9900" style={styles.planeIcon} />
           </View>
           <Text style={styles.brandTitle}>
             Zunex<Text style={styles.brandAccent}>Hire</Text>
@@ -27,12 +24,12 @@ export const Header: React.FC<HeaderProps> = ({ onSearchPress, onMenuPress }) =>
         <View style={styles.actionGroup}>
           {onSearchPress && (
             <TouchableOpacity style={styles.iconButton} onPress={onSearchPress} activeOpacity={0.8}>
-              <Ionicons name="search-outline" size={20} color="#1b2a4a" />
+              <Ionicons name="search-outline" size={20} color="#0b2545" />
             </TouchableOpacity>
           )}
           {onMenuPress && (
             <TouchableOpacity style={styles.iconButton} onPress={onMenuPress} activeOpacity={0.8}>
-              <Ionicons name="menu-outline" size={22} color="#1b2a4a" />
+              <Ionicons name="menu-outline" size={22} color="#0b2545" />
             </TouchableOpacity>
           )}
         </View>
@@ -46,7 +43,7 @@ const styles = StyleSheet.create({
     width: '100%',
     backgroundColor: '#ffffff',
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0, 0, 0, 0.05)',
+    borderBottomColor: 'rgba(27, 42, 74, 0.05)',
     elevation: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -68,31 +65,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   planeBox: {
-    width: 40,
-    height: 40,
+    width: 42,
+    height: 42,
     borderRadius: 12,
     backgroundColor: '#0b2545',
     alignItems: 'center',
     justifyContent: 'center',
-    overflow: 'hidden',
     marginRight: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 5,
   },
-  logoImage: {
-    width: '80%',
-    height: '80%',
-    resizeMode: 'contain',
+  planeIcon: {
+    transform: [{ rotate: '-45deg' }],
   },
   brandTitle: {
     fontSize: 26,
     fontWeight: '900',
     fontStyle: 'italic',
     textTransform: 'uppercase',
-    color: '#1b2a4a',
+    color: '#0b2545',
     letterSpacing: -1,
   },
   brandAccent: {
