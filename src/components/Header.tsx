@@ -12,24 +12,29 @@ export const Header: React.FC<HeaderProps> = ({ onSearchPress, onMenuPress }) =>
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <View style={styles.container}>
-        <View style={styles.logoGroup}>
+        <View style={styles.leftGroup}>
           <View style={styles.planeBox}>
-            <Ionicons name="airplane" size={16} color="#ff9900" />
+            <Ionicons name="airplane" size={20} color="#ff9900" />
           </View>
-          <Text style={styles.brandTitle}>
-            Zunex<Text style={styles.brandAccent}>Hire</Text>
-          </Text>
+          <View style={styles.titleWrapper}>
+            <Text style={styles.brandTitle}>
+              Zunex<Text style={styles.brandAccent}>Hire</Text>
+            </Text>
+            <Text style={styles.brandSubtitle}>
+              GLOBAL JOB VISA <Text style={styles.subtitleAccent}>& TRAVEL GUIDES</Text>
+            </Text>
+          </View>
         </View>
 
         <View style={styles.actionGroup}>
           {onSearchPress && (
             <TouchableOpacity style={styles.iconButton} onPress={onSearchPress} activeOpacity={0.8}>
-              <Ionicons name="search-outline" size={20} color="#111827" />
+              <Ionicons name="search-outline" size={20} color="#0000ff" />
             </TouchableOpacity>
           )}
           {onMenuPress && (
             <TouchableOpacity style={styles.iconButton} onPress={onMenuPress} activeOpacity={0.8}>
-              <Ionicons name="menu-outline" size={22} color="#111827" />
+              <Ionicons name="menu-outline" size={22} color="#0000ff" />
             </TouchableOpacity>
           )}
         </View>
@@ -43,7 +48,7 @@ const styles = StyleSheet.create({
     width: '100%',
     backgroundColor: '#ffffff',
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0, 0, 0, 0.05)',
+    borderBottomColor: 'rgba(0, 0, 255, 0.05)',
     elevation: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -52,7 +57,7 @@ const styles = StyleSheet.create({
     zIndex: 50,
   },
   container: {
-    height: 65,
+    height: 70,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -60,7 +65,7 @@ const styles = StyleSheet.create({
     width: '100%',
     backgroundColor: '#ffffff',
   },
-  logoGroup: {
+  leftGroup: {
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -79,8 +84,11 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 5,
   },
+  titleWrapper: {
+    justifyContent: 'center',
+  },
   brandTitle: {
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: '900',
     fontStyle: 'italic',
     textTransform: 'uppercase',
@@ -88,6 +96,17 @@ const styles = StyleSheet.create({
     letterSpacing: -1,
   },
   brandAccent: {
+    color: '#ff9900',
+  },
+  brandSubtitle: {
+    fontSize: 9,
+    fontWeight: '900',
+    fontStyle: 'italic',
+    color: '#0000ff',
+    letterSpacing: 0.5,
+    marginTop: 1,
+  },
+  subtitleAccent: {
     color: '#ff9900',
   },
   actionGroup: {
