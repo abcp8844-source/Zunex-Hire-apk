@@ -20,11 +20,17 @@ export const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ naviga
     loadNotifications();
   }, []);
 
-  const handlePress = async (id: string, postId?: string) => {
-    await markNotificationAsRead(id);
-    loadNotifications();
-    if (postId) {
-      // Navigate to post or related detail if required
+  const handlePress = async (item: any) => {
+    if (!item.is_read) {
+      await markNotificationAsRead(item.id);
+      loadNotifications();
+    }
+
+    if (item.post_id) {
+      // Navigate to post detail screen
+      // navigation.navigate('PostDetail', { postId: item.post_id });
+    } else if (item.sender_id) {
+      navigation.navigate('Profile', { userId: item.sender_id });
     }
   };
 
@@ -41,7 +47,7 @@ export const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ naviga
         renderItem={({ item }) => (
           <TouchableOpacity
             style={[styles.item, !item.is_read && styles.unreadItem]}
-            onPress={() => handlePress(item.id, item.post_id)}
+            onPress={() => handlePress(item)}
           >
             <Image
               source={{ uri: item.sender?.avatar_url || 'https://via.placeholder.com/150' }}
@@ -53,6 +59,7 @@ export const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ naviga
               </Text>
               <Text style={styles.time}>{new Date(item.created_at).toLocaleDateString()}</Text>
             </View>
+            {!item.is_read && <View style={styles.unreadDot} />}
           </TouchableOpacity>
         )}
       />
@@ -63,25 +70,25 @@ export const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ naviga
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.background || '#f0f2f5',
   },
   item: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.card,
+    backgroundColor: theme.colors.card || '#ffffff',
     padding: theme.spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: theme.colors.border || '#e4e6eb',
   },
   unreadItem: {
-    backgroundColor: theme.colors.grayLight,
+    backgroundColor: '#e7f3ff',
   },
   avatar: {
     width: 50,
     height: 50,
     borderRadius: 25,
     marginRight: theme.spacing.md,
-    backgroundColor: theme.colors.grayLight,
+    backgroundColor: '#e4e6eb',
   },
   contentContainer: {
     flex: 1,
@@ -97,5 +104,13 @@ const styles = StyleSheet.create({
   time: {
     fontSize: theme.typography.fontSizes.xs,
     color: theme.colors.textSecondary,
+    marginTop: 2,
+  },
+  unreadDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: theme.colors.primary || '#1877f2',
+    marginLeft: theme.spacing.sm,
   },
 });
