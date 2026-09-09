@@ -95,3 +95,47 @@ export const fetchGroupMedia = async (groupId: string) => {
   if (error) return [];
   return data;
 };
+
+// Fetch user's groups
+export const fetchUserGroups = async () => {
+  const user = (await supabase.auth.getUser()).data.user;
+  if (!user) return [];
+
+  const { data, error } = await supabase
+    .from('group_members')
+    .select('groups(*)')
+    .eq('user_id', user.id);
+
+  if (error) return [];
+  return data?.map((item: any) => item.groups).filter(Boolean) || [];
+};
+
+// Fetch groups to explore
+export const fetchExploreGroups = async () => {
+  const user = (await supabase.auth.getUser()).data.user;
+  if (!user) return [];
+
+  const { data, error } = await supabase
+    .from('groups')
+    .select('*');
+
+  if (error) return [];
+  return data || [];
+};
+
+// Search groups
+export const searchGroups = async (query: string) => {
+  const { data, error } = await supabase
+    .from('groups')
+    .select('*')
+    .ilike('name', `%${query}%`);
+
+  if (error) return [];
+  return data || [];
+};
+
+// Fetch group pending requests (alias for fetchPendingPosts)
+export const fetchGroupPendingRequests = fetchPendingPosts;
+
+// Approve group member (for handling pending requests)
+export const approveGroupMember = approvePost;

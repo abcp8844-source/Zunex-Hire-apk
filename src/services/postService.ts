@@ -122,3 +122,34 @@ export const sharePost = async (postId: string, postOwnerId: string) => {
     ]);
   }
 };
+
+// Alias for toggleLike (used in PostCard)
+export const toggleLikePost = toggleLike;
+
+// Update post
+export const updatePost = async (postId: string, updates: any) => {
+  const user = (await supabase.auth.getUser()).data.user;
+  if (!user) throw new Error('Authentication required');
+
+  const { data, error } = await supabase
+    .from('posts')
+    .update(updates)
+    .eq('id', postId)
+    .eq('user_id', user.id)
+    .select();
+
+  if (error) throw error;
+  return data;
+};
+
+// Search posts
+export const searchPosts = async (query: string) => {
+  const { data, error } = await supabase
+    .from('posts')
+    .select('*, profiles(full_name, avatar_url), likes(count), comments(count)')
+    .ilike('content', `%${query}%`)
+    .order('created_at', { ascending: false });
+
+  if (error) return [];
+  return data || [];
+};
