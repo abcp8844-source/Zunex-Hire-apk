@@ -16,6 +16,15 @@ import { FindFriendsScreen } from '../screens/profile/FindFriendsScreen';
 import { ProfilePhotosScreen } from '../screens/profile/ProfilePhotosScreen';
 import { FriendRequestsScreen } from '../screens/profile/FriendRequestsScreen';
 
+import { GroupDetailScreen } from '../screens/groups/GroupDetailScreen';
+import { CreateGroupScreen } from '../screens/groups/CreateGroupScreen';
+import { ManageGroupScreen } from '../screens/groups/ManageGroupScreen';
+import { GroupMembersScreen } from '../screens/groups/GroupMembersScreen';
+import { GroupPendingRequests } from '../screens/groups/GroupPendingRequests';
+import { GroupSettingsScreen } from '../screens/groups/GroupSettingsScreen';
+import { GroupScheduledPosts } from '../screens/groups/GroupScheduledPosts';
+import { GroupMediaScreen } from '../screens/groups/GroupMediaScreen';
+
 import { SettingsScreen } from '../screens/menu/SettingsScreen';
 import { ActivityLogScreen } from '../screens/menu/ActivityLogScreen';
 import { BlockedUsersScreen } from '../screens/menu/BlockedUsersScreen';
@@ -35,6 +44,7 @@ export const AppNavigator: React.FC<AppNavigatorProps> = ({ session }) => {
         {session && session.user ? (
           <>
             <Stack.Screen name="MainTabs" component={MainTabs} />
+            
             <Stack.Screen name="Profile" component={ProfileScreen} />
             <Stack.Screen name="EditProfile" component={EditProfileScreen} />
             <Stack.Screen name="PersonalDetails" component={PersonalDetailsScreen} />
@@ -43,6 +53,16 @@ export const AppNavigator: React.FC<AppNavigatorProps> = ({ session }) => {
             <Stack.Screen name="FindFriends" component={FindFriendsScreen} />
             <Stack.Screen name="ProfilePhotos" component={ProfilePhotosScreen} />
             <Stack.Screen name="FriendRequests" component={FriendRequestsScreen} />
+            
+            <Stack.Screen name="GroupDetail" component={GroupDetailScreen} />
+            <Stack.Screen name="CreateGroup" component={CreateGroupScreen} />
+            <Stack.Screen name="ManageGroup" component={ManageGroupScreen} />
+            <Stack.Screen name="GroupMembers" component={GroupMembersScreen} />
+            <Stack.Screen name="GroupPendingRequests" component={GroupPendingRequests} />
+            <Stack.Screen name="GroupSettings" component={GroupSettingsScreen} />
+            <Stack.Screen name="GroupScheduledPosts" component={GroupScheduledPosts} />
+            <Stack.Screen name="GroupMedia" component={GroupMediaScreen} />
+            
             <Stack.Screen name="Settings" component={SettingsScreen} />
             <Stack.Screen name="ActivityLog" component={ActivityLogScreen} />
             <Stack.Screen name="BlockedUsers" component={BlockedUsersScreen} />
