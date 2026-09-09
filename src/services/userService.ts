@@ -11,10 +11,7 @@ export const fetchUserProfile = async (userId?: string) => {
     .eq('id', targetId)
     .single();
 
-  if (error) {
-    console.error('Error fetching profile:', error);
-    return null;
-  }
+  if (error) throw error;
   return data;
 };
 
@@ -24,8 +21,10 @@ export const updateProfile = async (updates: any) => {
 
   const { data, error } = await supabase
     .from('profiles')
-    update(updates)
-    .eq('id', user.id);
+    .update(updates)
+    .eq('id', user.id)
+    .select()
+    .single();
 
   if (error) throw error;
   return data;
@@ -118,9 +117,11 @@ export const unblockUser = async (blockedId: string) => {
   const user = (await supabase.auth.getUser()).data.user;
   if (!user) return;
 
-  await supabase
+  const { error } = await supabase
     .from('blocked_users')
     .delete()
     .eq('user_id', user.id)
     .eq('blocked_id', blockedId);
+
+  if (error) throw error;
 };
