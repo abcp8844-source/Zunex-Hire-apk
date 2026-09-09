@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../theme';
 
 interface HeaderProps {
   onSearchPress?: () => void;
@@ -10,90 +10,99 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ onSearchPress, onMenuPress }) => {
   return (
-    <View style={styles.container}>
-      <View style={styles.logoContainer}>
-        <View style={styles.iconBox}>
-          <Ionicons name="airplane" size={18} color={theme.colors.accent || '#fff'} />
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <View style={styles.container}>
+        <View style={styles.logoGroup}>
+          <View style={styles.planeBox}>
+            <Ionicons name="airplane" size={16} color="#ff9900" />
+          </View>
+          <Text style={styles.brandTitle}>
+            Zunex<Text style={styles.brandAccent}>Hire</Text>
+          </Text>
         </View>
-        <Text style={styles.brandText}>
-          Zunex<Text style={styles.brandSubText}>Hire</Text>
-        </Text>
-      </View>
 
-      <View style={styles.actions}>
-        {onSearchPress && (
-          <TouchableOpacity style={styles.actionButton} onPress={onSearchPress} activeOpacity={0.7}>
-            <Ionicons name="search-outline" size={20} color={theme.colors.text} />
-          </TouchableOpacity>
-        )}
-        {onMenuPress && (
-          <TouchableOpacity style={styles.actionButton} onPress={onMenuPress} activeOpacity={0.7}>
-            <Ionicons name="menu-outline" size={22} color={theme.colors.text} />
-          </TouchableOpacity>
-        )}
+        <View style={styles.actionGroup}>
+          {onSearchPress && (
+            <TouchableOpacity style={styles.iconButton} onPress={onSearchPress} activeOpacity={0.8}>
+              <Ionicons name="search-outline" size={20} color="#111827" />
+            </TouchableOpacity>
+          )}
+          {onMenuPress && (
+            <TouchableOpacity style={styles.iconButton} onPress={onMenuPress} activeOpacity={0.8}>
+              <Ionicons name="menu-outline" size={22} color="#111827" />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    width: '100%',
+    backgroundColor: '#ffffff',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0, 0, 0, 0.05)',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    zIndex: 50,
+  },
   container: {
-    height: 60,
-    backgroundColor: theme.colors.card || '#ffffff',
+    height: 65,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border || '#e5e7eb',
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    width: '100%',
+    backgroundColor: '#ffffff',
   },
-  logoContainer: {
+  logoGroup: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  iconBox: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: theme.colors.primary || '#0000ff',
+  planeBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#0000ff',
     alignItems: 'center',
     justifyContent: 'center',
     transform: [{ rotate: '6deg' }],
-    marginRight: 10,
+    marginRight: 12,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
   },
-  brandText: {
-    fontSize: 22,
+  brandTitle: {
+    fontSize: 26,
     fontWeight: '900',
     fontStyle: 'italic',
     textTransform: 'uppercase',
-    color: theme.colors.primary || '#0000ff',
-    letterSpacing: -0.5,
+    color: '#0000ff',
+    letterSpacing: -1,
   },
-  brandSubText: {
-    color: theme.colors.accent || '#ff9900',
+  brandAccent: {
+    color: '#ff9900',
   },
-  actions: {
+  actionGroup: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  actionButton: {
-    width: 38,
-    height: 38,
-    backgroundColor: theme.colors.background || '#f3f4f6',
-    borderRadius: 19,
-    justifyContent: 'center',
+  iconButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#f3f4f6',
     alignItems: 'center',
+    justifyContent: 'center',
     marginLeft: 8,
     borderWidth: 1,
-    borderColor: theme.colors.border || '#e5e7eb',
+    borderColor: '#e5e7eb',
   },
 });
