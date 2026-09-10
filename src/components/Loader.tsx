@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, Easing, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Animated, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { theme } from '../theme';
 
 interface LoaderProps {
   text?: string;
@@ -9,204 +10,167 @@ interface LoaderProps {
 const { width: screenWidth } = Dimensions.get('window');
 
 export const Loader: React.FC<LoaderProps> = ({ text }) => {
-  const moveAnim = useRef(new Animated.Value(-260)).current;
-  const planeBounce = useRef(new Animated.Value(0)).current;
-  const bannerWave = useRef(new Animated.Value(0)).current;
+  const moveAnim = useRef(new Animated.Value(-120)).current;
+  const floatAnim = useRef(new Animated.Value(0)).current;
+  const smokeOpacityAnim = useRef(new Animated.Value(0.4)).current;
 
   useEffect(() => {
-    const moveAnimation = Animated.loop(
+    const flightLoop = Animated.loop(
       Animated.timing(moveAnim, {
-        toValue: screenWidth + 260,
-        duration: 5500,
-        easing: Easing.linear,
+        toValue: screenWidth + 120,
+        duration: 3000,
         useNativeDriver: true,
       })
     );
 
-    const bounceAnimation = Animated.loop(
+    const floatLoop = Animated.loop(
       Animated.sequence([
-        Animated.timing(planeBounce, {
-          toValue: -6,
-          duration: 600,
+        Animated.timing(floatAnim, {
+          toValue: -4,
+          duration: 800,
           useNativeDriver: true,
         }),
-        Animated.timing(planeBounce, {
-          toValue: 5,
-          duration: 700,
+        Animated.timing(floatAnim, {
+          toValue: 2,
+          duration: 800,
           useNativeDriver: true,
         }),
-        Animated.timing(planeBounce, {
-          toValue: 0,
+      ])
+    );
+
+    const smokeLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(smokeOpacityAnim, {
+          toValue: 0.7,
+          duration: 500,
+          useNativeDriver: true,
+        }),
+        Animated.timing(smokeOpacityAnim, {
+          toValue: 0.3,
           duration: 500,
           useNativeDriver: true,
         }),
       ])
     );
 
-    const waveAnimation = Animated.loop(
-      Animated.sequence([
-        Animated.timing(bannerWave, {
-          toValue: 1,
-          duration: 450,
-          useNativeDriver: true,
-        }),
-        Animated.timing(bannerWave, {
-          toValue: -1,
-          duration: 500,
-          useNativeDriver: true,
-        }),
-        Animated.timing(bannerWave, {
-          toValue: 0,
-          duration: 450,
-          useNativeDriver: true,
-        }),
-      ])
-    );
-
-    moveAnimation.start();
-    bounceAnimation.start();
-    waveAnimation.start();
+    flightLoop.start();
+    floatLoop.start();
+    smokeLoop.start();
 
     return () => {
-      moveAnimation.stop();
-      bounceAnimation.stop();
-      waveAnimation.stop();
+      flightLoop.stop();
+      floatLoop.stop();
+      smokeLoop.stop();
     };
-  }, []);
-
-  const bannerRotate = bannerWave.interpolate({
-    inputRange: [-1, 1],
-    outputRange: ['-5deg', '5deg'],
-  });
-
-  const bannerY = bannerWave.interpolate({
-    inputRange: [-1, 1],
-    outputRange: [-3, 3],
-  });
+  }, [moveAnim, floatAnim, smokeOpacityAnim]);
 
   return (
     <View style={styles.container}>
       <View style={styles.trackBox}>
         <Animated.View
           style={[
-            styles.flightGroup,
+            styles.airplaneWrapper,
             {
               transform: [
                 { translateX: moveAnim },
-                { translateY: planeBounce },
+                { translateY: floatAnim },
               ],
             },
           ]}
         >
-          <Animated.View
-            style={[
-              styles.bannerContainer,
-              {
-                transform: [
-                  { rotate: bannerRotate },
-                  { translateY: bannerY },
-                ],
-              },
-            ]}
-          >
-            <View style={styles.bannerBox}>
-              <Ionicons name="sparkles" size={14} color="#fbbf24" />
-              <Text style={styles.bannerBrand}>ZUNEXHIRE</Text>
-              <View style={styles.divider} />
-              <Text style={styles.bannerText}>
-                {text || 'HOLD ON, PREPARING FLIGHT... 🚀'}
-              </Text>
-            </View>
+          <Animated.View style={[styles.smokeContainer, { opacity: smokeOpacityAnim }]}>
+            <View style={styles.smokeParticleLarge} />
+            <View style={styles.smokeParticleMedium} />
+            <View style={styles.smokeParticleSmall} />
+            <View style={styles.smokeLine} />
           </Animated.View>
 
-          <View style={styles.ropeContainer}>
-            <View style={styles.ropeLine} />
-            <View style={styles.ropeLine} />
-          </View>
-
-          <View style={styles.planeWrapper}>
-            <Ionicons name="airplane" size={48} color="#0f172a" />
+          <View style={styles.planeIconContainer}>
+            <Ionicons name="airplane" size={56} color="#1877f2" />
+            <View style={styles.engineGlow} />
           </View>
         </Animated.View>
       </View>
+
+      {text ? <Text style={styles.loadingText}>{text}</Text> : null}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    paddingVertical: 14,
+    paddingVertical: 16,
     paddingHorizontal: 16,
     justifyContent: 'center',
     alignItems: 'center',
     width: '100%',
-    backgroundColor: 'rgba(241, 245, 249, 0.75)',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
+    backgroundColor: 'transparent',
   },
   trackBox: {
     width: '100%',
     height: 70,
     justifyContent: 'center',
     overflow: 'hidden',
+    backgroundColor: 'transparent',
   },
-  flightGroup: {
+  airplaneWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    position: 'absolute',
-    left: 0,
   },
-  bannerContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  bannerBox: {
-    backgroundColor: '#0f172a',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    borderWidth: 1.5,
-    borderColor: '#38bdf8',
+  smokeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.15,
-    shadowRadius: 5,
-    elevation: 4,
+    marginRight: -12,
   },
-  bannerBrand: {
-    color: '#fbbf24',
-    fontSize: 11,
-    fontWeight: '900',
-    letterSpacing: 1,
+  smokeLine: {
+    width: 35,
+    height: 2,
+    backgroundColor: '#00d2ff',
+    borderRadius: 1,
+    opacity: 0.5,
   },
-  divider: {
-    width: 1,
+  smokeParticleSmall: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(56, 189, 248, 0.4)',
+    marginRight: -2,
+  },
+  smokeParticleMedium: {
+    width: 10,
     height: 10,
-    backgroundColor: '#334155',
+    borderRadius: 5,
+    backgroundColor: 'rgba(56, 189, 248, 0.25)',
+    marginRight: -3,
   },
-  bannerText: {
-    color: '#ffffff',
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 0.5,
+  smokeParticleLarge: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: 'rgba(56, 189, 248, 0.12)',
+    marginRight: -4,
   },
-  ropeContainer: {
-    width: 18,
-    height: 12,
-    justifyContent: 'space-between',
-    paddingVertical: 2,
-  },
-  ropeLine: {
-    width: '100%',
-    height: 1,
-    backgroundColor: '#94a3b8',
-  },
-  planeWrapper: {
+  planeIconContainer: {
+    position: 'relative',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  engineGlow: {
+    position: 'absolute',
+    bottom: 18,
+    left: 20,
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: '#38bdf8',
+    opacity: 0.8,
+  },
+  loadingText: {
+    marginTop: 8,
+    fontSize: 11,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 2,
+    color: theme?.colors?.primary || '#1877f2',
   },
 });
