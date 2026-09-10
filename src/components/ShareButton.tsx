@@ -7,9 +7,15 @@ interface ShareButtonProps {
   shareCount: number;
   onPress?: () => void;
   shareMessage?: string;
+  shareUrl?: string;
 }
 
-export const ShareButton: React.FC<ShareButtonProps> = ({ shareCount, onPress, shareMessage }) => {
+export const ShareButton: React.FC<ShareButtonProps> = ({ 
+  shareCount, 
+  onPress, 
+  shareMessage,
+  shareUrl 
+}) => {
   const handlePress = async () => {
     if (onPress) {
       onPress();
@@ -17,9 +23,17 @@ export const ShareButton: React.FC<ShareButtonProps> = ({ shareCount, onPress, s
     }
 
     try {
-      await Share.share({
+      const result = await Share.share({
         message: shareMessage || 'Check out this post on Zunexhire',
+        url: shareUrl,
       });
+
+      if (result.action === Share.sharedAction) {
+        if (result.activityType) {
+        } else {
+        }
+      } else if (result.action === Share.dismissedAction) {
+      }
     } catch (error) {
       console.error(error);
     }
