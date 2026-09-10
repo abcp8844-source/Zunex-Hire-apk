@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { LikeButton } from '../../components/LikeButton';
-import { supabase } from '../../services/supabase';
+import { supabase } from '../../services/postService';
 
 interface PostLikeSectionProps {
   postId: string;
