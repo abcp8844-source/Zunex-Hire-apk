@@ -8,6 +8,7 @@ import {
   Alert,
   ActivityIndicator,
   RefreshControl,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
@@ -85,7 +86,6 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation, route 
 
   const renderProfileHeader = () => (
     <View style={styles.headerContainer}>
-      {/* Cover Image Placeholder or User Photo */}
       <View style={styles.coverContainer}>
         {profile?.cover_url ? (
           <Image source={{ uri: profile.cover_url }} style={styles.coverImage} />
@@ -97,7 +97,6 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation, route 
       </View>
 
       <View style={styles.profileHeaderContent}>
-        {/* Avatar Placeholder or User Photo */}
         <View style={styles.avatarWrapper}>
           {profile?.avatar_url ? (
             <Image source={{ uri: profile.avatar_url }} style={styles.avatar} />
@@ -157,7 +156,6 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation, route 
           </TouchableOpacity>
         </View>
 
-        {/* Personal details (Screen 1 & 2 match) */}
         <View style={styles.infoSection}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Personal details</Text>
@@ -382,7 +380,7 @@ const styles = StyleSheet.create({
     height: 38,
     borderRadius: 6,
     flexDirection: 'row',
-    justify.content: 'center',
+    justifyContent: 'center',
     alignItems: 'center',
     marginLeft: 6,
   },
