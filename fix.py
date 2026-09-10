@@ -9,43 +9,31 @@ if not url or not key:
 
 supabase = create_client(url, key)
 
-print("Starting fake data insertion into Zunexhire tables...")
+print("Starting fake data insertion into Zunexhire tables using provided UUIDs...")
 
-# 1. پہلے پروفائلز (Users) انسرٹ کرتے ہیں
-# نوٹ: یہاں auth.users سے مطابقت کے لیے ہمیں عارضی یا پہلے سے موجود UUIDs درکار ہوتے ہیں، 
-# لیکن اگر آپ ٹیسٹنگ کے لیے بنا رہے ہیں تو ہم ڈائریکٹ profiles میں انسرٹ کریں گے۔
+# آپ کی فراہم کردہ مخصوص UUIDs
+admin_id = "29cde3ea-90c9-40a6-ab62-8a3c31bb4100"
+user_id_2 = "b19546e9-1ce6-41f0-b897-6a984d38e8e2"
+
+# 1. پہلے پروفائلز (Users) انسرٹ کرتے ہیں (مخصوص IDs کے ساتھ)
 profiles_data = [
     {
+        "id": admin_id,
         "full_name": "Ahmad Khan",
         "avatar_url": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150",
         "bio": "Global Job Seeker & Tech Enthusiast 🚀"
     },
     {
+        "id": user_id_2,
         "full_name": "Sara Ali",
         "avatar_url": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150",
         "bio": "Travel guide and consultant at Qatar."
-    },
-    {
-        "full_name": "Bilal Ahmed",
-        "avatar_url": "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150",
-        "bio": "Exploring logistics and opportunities in Oman."
     }
 ]
 
-# پروفائلز داخل کریں
-profiles_res = supabase.table("profiles").insert(profiles_data).execute()
-print(f"Profiles inserted successfully.")
-
-# اگر پروفائلز آگئی ہیں تو ان کی آئی ڈیز نکال لیتے ہیں
-# (فرض کریں ڈیٹا بیس سے فیچ ہو گئیں)
-all_profiles = supabase.table("profiles").select("id, full_name").execute().data
-
-if not all_profiles:
-    print("Error: No profiles found to link posts/groups.")
-    exit()
-
-admin_id = all_profiles[0]["id"]
-user_id_2 = all_profiles[1]["id"] if len(all_profiles) > 1 else admin_id
+# پروفائلز داخل کریں (upsert استعمال کیا ہے تاکہ اگر پہلے سے ہوں تو اپڈیٹ ہو جائیں)
+profiles_res = supabase.table("profiles").upsert(profiles_data).execute()
+print("Profiles inserted successfully with specified IDs.")
 
 # 2. گروپس بنانا (Groups Table)
 groups_data = [
@@ -118,4 +106,4 @@ supabase.table("notifications").insert([
     }
 ]).execute()
 
-print("All dummy data injection completed successfully! Now test your app flow.")
+print("All dummy data injection completed successfully using your exact IDs!")
