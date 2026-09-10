@@ -10,14 +10,14 @@ interface LoaderProps {
 const { width: screenWidth } = Dimensions.get('window');
 
 export const Loader: React.FC<LoaderProps> = ({ text }) => {
-  const moveAnim = useRef(new Animated.Value(-120)).current;
+  const moveAnim = useRef(new Animated.Value(-140)).current;
   const floatAnim = useRef(new Animated.Value(0)).current;
   const smokeOpacityAnim = useRef(new Animated.Value(0.4)).current;
 
   useEffect(() => {
     const flightLoop = Animated.loop(
       Animated.timing(moveAnim, {
-        toValue: screenWidth + 120,
+        toValue: screenWidth + 140,
         duration: 3000,
         useNativeDriver: true,
       })
@@ -86,7 +86,7 @@ export const Loader: React.FC<LoaderProps> = ({ text }) => {
           </Animated.View>
 
           <View style={styles.planeIconContainer}>
-            <Ionicons name="airplane" size={56} color="#1877f2" />
+            <Ionicons name="airplane" size={64} color="#002244" />
             <View style={styles.engineGlow} />
           </View>
         </Animated.View>
@@ -108,7 +108,7 @@ const styles = StyleSheet.create({
   },
   trackBox: {
     width: '100%',
-    height: 70,
+    height: 80,
     justifyContent: 'center',
     overflow: 'hidden',
     backgroundColor: 'transparent',
@@ -123,31 +123,31 @@ const styles = StyleSheet.create({
     marginRight: -12,
   },
   smokeLine: {
-    width: 35,
-    height: 2,
-    backgroundColor: '#00d2ff',
-    borderRadius: 1,
-    opacity: 0.5,
+    width: 40,
+    height: 3,
+    backgroundColor: '#1B365D',
+    borderRadius: 1.5,
+    opacity: 0.6,
   },
   smokeParticleSmall: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: 'rgba(56, 189, 248, 0.4)',
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: 'rgba(27, 54, 93, 0.5)',
     marginRight: -2,
   },
   smokeParticleMedium: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: 'rgba(56, 189, 248, 0.25)',
+    width: 11,
+    height: 11,
+    borderRadius: 5.5,
+    backgroundColor: 'rgba(27, 54, 93, 0.35)',
     marginRight: -3,
   },
   smokeParticleLarge: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: 'rgba(56, 189, 248, 0.12)',
+    width: 15,
+    height: 15,
+    borderRadius: 7.5,
+    backgroundColor: 'rgba(27, 54, 93, 0.2)',
     marginRight: -4,
   },
   planeIconContainer: {
@@ -157,13 +157,13 @@ const styles = StyleSheet.create({
   },
   engineGlow: {
     position: 'absolute',
-    bottom: 18,
-    left: 20,
-    width: 5,
-    height: 5,
-    borderRadius: 2.5,
-    backgroundColor: '#38bdf8',
-    opacity: 0.8,
+    bottom: 20,
+    left: 22,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#1B365D',
+    opacity: 0.9,
   },
   loadingText: {
     marginTop: 8,
@@ -171,6 +171,6 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     textTransform: 'uppercase',
     letterSpacing: 2,
-    color: theme?.colors?.primary || '#1877f2',
+    color: '#002244',
   },
 });
