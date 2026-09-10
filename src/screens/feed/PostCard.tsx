@@ -10,8 +10,6 @@ import {
   Share,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { CommentButton } from '../../components/CommentButton';
-import { ShareButton } from '../../components/ShareButton';
 import { PostLikeSection } from './PostLikeSection';
 import { CommentSection } from './CommentSection';
 import { EditPostScreen } from './EditPostScreen';
@@ -100,8 +98,8 @@ const PostCardComponent: React.FC<PostCardProps> = ({ post, currentUserId, onUpd
   };
 
   const totalReactions = Number(post?.likes_count) || 0;
-  const totalComments = post?.comments_count || 0;
-  const totalShares = post?.shares_count || 0;
+  const totalComments = Number(post?.comments_count) || 0;
+  const totalShares = Number(post?.shares_count) || 0;
   const topReactions = Array.isArray(post?.reaction_summary) ? post.reaction_summary : [];
 
   return (
@@ -157,6 +155,7 @@ const PostCardComponent: React.FC<PostCardProps> = ({ post, currentUserId, onUpd
         </TouchableOpacity>
       ) : null}
 
+      {/* रिएक्शन का ऊपर वाला सेक्शन */}
       <View style={styles.reactionsOverviewBar}>
         <TouchableOpacity
           style={styles.invisibleTriggerButton}
@@ -188,6 +187,7 @@ const PostCardComponent: React.FC<PostCardProps> = ({ post, currentUserId, onUpd
         </TouchableOpacity>
       </View>
 
+      {/* तीन विजुअल बटन (बिना टेक्स्ट, केवल आइकॉन और नंबर) */}
       <View style={styles.actionsBar}>
         <View style={styles.actionItem}>
           <PostLikeSection
@@ -199,19 +199,23 @@ const PostCardComponent: React.FC<PostCardProps> = ({ post, currentUserId, onUpd
           />
         </View>
 
-        <View style={styles.actionItem}>
-          <CommentButton
-            commentCount=""
-            onPress={() => setShowComments(!showComments)}
-          />
-        </View>
+        <TouchableOpacity 
+          style={styles.actionButton}
+          onPress={() => setShowComments(!showComments)}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="chatbox-outline" size={22} color="#65676b" />
+          <Text style={styles.actionCountText}>{formatCount(totalComments)}</Text>
+        </TouchableOpacity>
 
-        <View style={styles.actionItem}>
-          <ShareButton
-            shareCount=""
-            onPress={handleNativeShare}
-          />
-        </View>
+        <TouchableOpacity 
+          style={styles.actionButton}
+          onPress={handleNativeShare}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="share-social-outline" size={22} color="#65676b" />
+          <Text style={styles.actionCountText}>{formatCount(totalShares)}</Text>
+        </TouchableOpacity>
       </View>
 
       {showComments && post?.id && (
@@ -425,11 +429,24 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingVertical: 8,
   },
   actionItem: {
     flex: 1,
     alignItems: 'center',
+  },
+  actionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 6,
+  },
+  actionCountText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#65676b',
   },
   modalOverlay: {
     flex: 1,
