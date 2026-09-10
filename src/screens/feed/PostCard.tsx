@@ -99,10 +99,10 @@ const PostCardComponent: React.FC<PostCardProps> = ({ post, currentUserId, onUpd
     ]);
   };
 
-  const totalReactions = post?.likes_count || 0;
+  const totalReactions = Number(post?.likes_count) || 0;
   const totalComments = post?.comments_count || 0;
   const totalShares = post?.shares_count || 0;
-  const topReactions = post?.reaction_summary || [];
+  const topReactions = Array.isArray(post?.reaction_summary) ? post.reaction_summary : [];
 
   return (
     <View style={styles.card}>
@@ -163,20 +163,20 @@ const PostCardComponent: React.FC<PostCardProps> = ({ post, currentUserId, onUpd
           onPress={() => setShowReactionsModal(true)}
           activeOpacity={0.7}
         >
-          {totalReactions > 0 ? (
+          {totalReactions > 0 && topReactions.length > 0 ? (
             <>
               <View style={styles.stackedIconsContainer}>
                 {topReactions.slice(0, 3).map((item: any, index: number) => (
                   <View 
-                    key={(item?.type || index) + index} 
+                    key={index} 
                     style={[
                       styles.miniReactionBadge, 
                       { zIndex: 3 - index, marginLeft: index > 0 ? -6 : 0 }
                     ]}
                   >
-                    <Text style={styles.miniEmojiText}>
-                      {item?.emoji || '👍'}
-                    </Text>
+                    {item?.emoji ? (
+                      <Text style={styles.miniEmojiText}>{item.emoji}</Text>
+                    ) : null}
                   </View>
                 ))}
               </View>
