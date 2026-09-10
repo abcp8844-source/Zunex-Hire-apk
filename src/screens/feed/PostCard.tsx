@@ -1,4 +1,4 @@
-import React, { useState, memo } from 'react';
+import React, { useState, useEffect, memo } from 'react';
 import {
   View,
   Text,
@@ -38,6 +38,16 @@ const PostCardComponent: React.FC<PostCardProps> = ({ post, currentUserId, onUpd
   const [showReactionsModal, setShowReactionsModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [selectedMedia, setSelectedMedia] = useState<string | null>(null);
+
+  const [localReactionsCount, setLocalReactionsCount] = useState<number>(Number(post?.likes_count) || 0);
+  const [localIsLiked, setLocalIsLiked] = useState<boolean>(Boolean(post?.is_liked));
+  const [localUserReaction, setLocalUserReaction] = useState<string | undefined>(post?.user_reaction);
+
+  useEffect(() => {
+    setLocalReactionsCount(Number(post?.likes_count) || 0);
+    setLocalIsLiked(Boolean(post?.is_liked));
+    setLocalUserReaction(post?.user_reaction);
+  }, [post?.likes_count, post?.is_liked, post?.user_reaction]);
 
   const isOwner = post?.user_id === currentUserId;
 
@@ -97,7 +107,24 @@ const PostCardComponent: React.FC<PostCardProps> = ({ post, currentUserId, onUpd
     ]);
   };
 
-  const totalReactions = Number(post?.likes_count) || 0;
+  const handleLocalReactionChange = (selectedEmoji?: string) => {
+    if (selectedEmoji) {
+      if (!localIsLiked) {
+        setLocalReactionsCount((prev) => prev + 1);
+      }
+      setLocalIsLiked(true);
+      setLocalUserReaction(selectedEmoji);
+    } else {
+      setLocalReactionsCount((prev) => Math.max(0, prev - 1));
+      setLocalIsLiked(false);
+      setLocalUserReaction(undefined);
+    }
+
+    if (onUpdate) {
+      onUpdate();
+    }
+  };
+
   const totalComments = Number(post?.comments_count) || 0;
   const totalShares = Number(post?.shares_count) || 0;
   const topReactions = Array.isArray(post?.reaction_summary) ? post.reaction_summary : [];
@@ -155,31 +182,36 @@ const PostCardComponent: React.FC<PostCardProps> = ({ post, currentUserId, onUpd
         </TouchableOpacity>
       ) : null}
 
-      {/* रिएक्शन का ऊपर वाला सेक्शन */}
       <View style={styles.reactionsOverviewBar}>
         <TouchableOpacity
           style={styles.invisibleTriggerButton}
           onPress={() => setShowReactionsModal(true)}
           activeOpacity={0.7}
         >
-          {totalReactions > 0 && topReactions.length > 0 ? (
+          {localReactionsCount > 0 ? (
             <>
               <View style={styles.stackedIconsContainer}>
-                {topReactions.slice(0, 3).map((item: any, index: number) => (
-                  <View 
-                    key={index} 
-                    style={[
-                      styles.miniReactionBadge, 
-                      { zIndex: 3 - index, marginLeft: index > 0 ? -6 : 0 }
-                    ]}
-                  >
-                    {item?.emoji ? (
-                      <Text style={styles.miniEmojiText}>{item.emoji}</Text>
-                    ) : null}
+                {topReactions.length > 0 ? (
+                  topReactions.slice(0, 3).map((item: any, index: number) => (
+                    <View 
+                      key={index} 
+                      style={[
+                        styles.miniReactionBadge, 
+                        { zIndex: 3 - index, marginLeft: index > 0 ? -6 : 0 }
+                      ]}
+                    >
+                      {item?.emoji ? (
+                        <Text style={styles.miniEmojiText}>{item.emoji}</Text>
+                      ) : null}
+                    </View>
+                  ))
+                ) : localUserReaction ? (
+                  <View style={styles.miniReactionBadge}>
+                    <Text style={styles.miniEmojiText}>{localUserReaction}</Text>
                   </View>
-                ))}
+                ) : null}
               </View>
-              <Text style={styles.reactionCountText}>{formatCount(totalReactions)}</Text>
+              <Text style={styles.reactionCountText}>{formatCount(localReactionsCount)}</Text>
             </>
           ) : (
             <Text style={styles.noReactionsText}>0</Text>
@@ -187,15 +219,14 @@ const PostCardComponent: React.FC<PostCardProps> = ({ post, currentUserId, onUpd
         </TouchableOpacity>
       </View>
 
-      {/* तीन विजुअल बटन (बिना टेक्स्ट, केवल आइकॉन और नंबर) */}
       <View style={styles.actionsBar}>
         <View style={styles.actionItem}>
           <PostLikeSection
             postId={post?.id}
-            isLiked={post?.is_liked}
-            totalReactions={totalReactions}
-            userReaction={post?.user_reaction}
-            onUpdate={onUpdate}
+            isLiked={localIsLiked}
+            totalReactions={localReactionsCount}
+            userReaction={localUserReaction}
+            onUpdate={handleLocalReactionChange}
           />
         </View>
 
@@ -230,7 +261,9 @@ const PostCardComponent: React.FC<PostCardProps> = ({ post, currentUserId, onUpd
         <ReactionsModal
           visible={showReactionsModal}
           postId={post.id}
-          totalReactions={totalReactions}
+          totalReactions={localReactionsCount}
+          userReaction={localUserReaction}
+          isLiked={localIsLiked}
           onClose={() => setShowReactionsModal(false)}
           navigation={navigation}
         />
