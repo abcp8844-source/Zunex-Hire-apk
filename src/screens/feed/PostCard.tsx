@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   Modal,
   Alert,
-  Dimensions,
+  Share,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { CommentButton } from '../../components/CommentButton';
@@ -16,7 +16,7 @@ import { PostLikeSection } from './PostLikeSection';
 import { CommentSection } from './CommentSection';
 import { EditPostScreen } from './EditPostScreen';
 import { MediaViewerScreen } from './MediaViewerScreen';
-import { sharePost, deletePost, savePost, reportPost } from '../../services/postService';
+import { deletePost, savePost, reportPost, sharePost } from '../../services/postService';
 
 interface PostCardProps {
   post: any;
@@ -25,35 +25,59 @@ interface PostCardProps {
   navigation?: any;
 }
 
+const formatCount = (num: number): string => {
+  if (!num || num === 0) return '0';
+  if (num >= 1000000000) return (num / 1000000000).toFixed(1).replace(/\.0$/, '') + 'B';
+  if (num >= 1000000) return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+  if (num >= 1000) return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+  return num.toString();
+};
+
 const PostCardComponent: React.FC<PostCardProps> = ({ post, currentUserId, onUpdate, navigation }) => {
   const [showComments, setShowComments] = useState(false);
   const [showOptionsModal, setShowOptionsModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [selectedMedia, setSelectedMedia] = useState<string | null>(null);
 
-  const isOwner = post.user_id === currentUserId;
+  const isOwner = post?.user_id === currentUserId;
 
   const handleProfilePress = () => {
-    if (navigation) {
+    if (navigation && post?.user_id) {
       navigation.navigate('Profile', { userId: post.user_id });
     }
   };
 
-  const handleShare = async () => {
-    await sharePost(post.id);
-    onUpdate();
+  const handleNativeShare = async () => {
+    try {
+      const shareOptions = {
+        message: post?.content ? `${post.content}\n\nCheck out this post on Zunexhire:` : 'Check out this post on Zunexhire:',
+        url: post?.image_url || `https://zunexhire.com/post/${post?.id}`,
+      };
+      
+      const result = await Share.share(shareOptions);
+      if (result.action === Share.sharedAction && post?.id) {
+        await sharePost(post.id);
+        onUpdate();
+      }
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Unable to share post');
+    }
   };
 
   const handleSave = async () => {
     setShowOptionsModal(false);
-    await savePost(post.id);
-    Alert.alert('Saved', 'Post saved to your collection.');
+    if (post?.id) {
+      await savePost(post.id);
+      Alert.alert('Saved', 'Post saved to your collection.');
+    }
   };
 
   const handleReport = async () => {
     setShowOptionsModal(false);
-    await reportPost(post.id);
-    Alert.alert('Reported', 'Thank you for reporting. We will review this post.');
+    if (post?.id) {
+      await reportPost(post.id);
+      Alert.alert('Reported', 'Thank you for reporting. We will review this post.');
+    }
   };
 
   const handleDelete = async () => {
@@ -64,14 +88,20 @@ const PostCardComponent: React.FC<PostCardProps> = ({ post, currentUserId, onUpd
         text: 'Delete',
         style: 'destructive',
         onPress: async () => {
-          await deletePost(post.id);
-          onUpdate();
+          if (post?.id) {
+            await deletePost(post.id);
+            onUpdate();
+          }
         },
       },
     ]);
   };
 
-  const totalReactions = post.likes_count || 0;
+  const totalReactions = post?.likes_count || 0;
+  const totalComments = post?.comments_count || 0;
+  const totalShares = post?.shares_count || 0;
+
+  const topReactions = post?.reaction_summary || ['like', 'love'];
 
   return (
     <View style={styles.card}>
@@ -83,19 +113,21 @@ const PostCardComponent: React.FC<PostCardProps> = ({ post, currentUserId, onUpd
         >
           <Image
             source={{
-              uri: post.profiles?.avatar_url || 'https://via.placeholder.com/150',
+              uri: post?.profiles?.avatar_url || 'https://via.placeholder.com/150',
             }}
             style={styles.avatar}
           />
-          <View>
-            <Text style={styles.author}>{post.profiles?.full_name || 'User'}</Text>
+          <View style={styles.headerTextContainer}>
+            <Text style={styles.author} numberOfLines={1}>
+              {post?.profiles?.full_name || 'User'}
+            </Text>
             <View style={styles.timeRow}>
               <Text style={styles.time}>
-                {new Date(post.created_at).toLocaleDateString()}
+                {post?.created_at ? new Date(post.created_at).toLocaleDateString() : ''}
               </Text>
               <Text style={styles.dotSeparator}>•</Text>
               <Ionicons
-                name={post.audience === 'friends' ? 'people-outline' : 'globe-outline'}
+                name={post?.audience === 'friends' ? 'people-outline' : 'globe-outline'}
                 size={12}
                 color="#899197"
               />
@@ -112,9 +144,9 @@ const PostCardComponent: React.FC<PostCardProps> = ({ post, currentUserId, onUpd
         </TouchableOpacity>
       </View>
 
-      {post.content ? <Text style={styles.content}>{post.content}</Text> : null}
+      {post?.content ? <Text style={styles.content}>{post.content}</Text> : null}
 
-      {post.image_url ? (
+      {post?.image_url ? (
         <TouchableOpacity onPress={() => setSelectedMedia(post.image_url)} activeOpacity={0.95}>
           <Image 
             source={{ uri: post.image_url }} 
@@ -124,40 +156,62 @@ const PostCardComponent: React.FC<PostCardProps> = ({ post, currentUserId, onUpd
         </TouchableOpacity>
       ) : null}
 
-      {(totalReactions > 0 || post.comments_count > 0) && (
-        <View style={styles.countsBar}>
-          <View style={styles.likesCountGroup}>
-            <View style={styles.miniReactionIcon}>
-              <Ionicons name="thumbs-up" size={10} color="#ffffff" />
-            </View>
-            <Text style={styles.countsText}>{totalReactions}</Text>
+      {totalReactions > 0 && (
+        <View style={styles.reactionsOverviewBar}>
+          <View style={styles.stackedIconsContainer}>
+            {topReactions.slice(0, 3).map((reaction: string, index: number) => (
+              <View 
+                key={reaction + index} 
+                style={[
+                  styles.miniReactionBadge, 
+                  { zIndex: 3 - index, marginLeft: index > 0 ? -6 : 0 }
+                ]}
+              >
+                <Ionicons 
+                  name={reaction === 'love' ? 'heart' : 'thumbs-up'} 
+                  size={10} 
+                  color="#ffffff" 
+                />
+              </View>
+            ))}
           </View>
-          <TouchableOpacity onPress={() => setShowComments(!showComments)}>
-            <Text style={styles.countsText}>{post.comments_count || 0} comments</Text>
-          </TouchableOpacity>
+          <Text style={styles.reactionCountText}>{formatCount(totalReactions)}</Text>
         </View>
       )}
 
       <View style={styles.actionsBar}>
-        <PostLikeSection
-          postId={post.id}
-          isLiked={post.is_liked}
-          totalReactions={totalReactions}
-          userReaction={post.user_reaction}
-          onUpdate={onUpdate}
-        />
+        <View style={styles.actionItem}>
+          <PostLikeSection
+            postId={post?.id}
+            isLiked={post?.is_liked}
+            totalReactions={totalReactions}
+            userReaction={post?.user_reaction}
+            onUpdate={onUpdate}
+          />
+        </View>
 
-        <CommentButton
-          commentCount={post.comments_count || 0}
-          onPress={() => setShowComments(!showComments)}
-        />
-        <ShareButton
-          shareCount={post.shares_count || 0}
-          onPress={handleShare}
-        />
+        <View style={styles.actionItem}>
+          <CommentButton
+            commentCount={formatCount(totalComments)}
+            onPress={() => setShowComments(!showComments)}
+          />
+        </View>
+
+        <View style={styles.actionItem}>
+          <ShareButton
+            shareCount={formatCount(totalShares)}
+            onPress={handleNativeShare}
+          />
+        </View>
       </View>
 
-      {showComments && <CommentSection postId={post.id} visible={showComments} onClose={() => setShowComments(false)} />}
+      {showComments && post?.id && (
+        <CommentSection 
+          postId={post.id} 
+          visible={showComments} 
+          onClose={() => setShowComments(false)} 
+        />
+      )}
 
       <Modal visible={showOptionsModal} transparent animationType="fade">
         <TouchableOpacity
@@ -266,6 +320,9 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: '#1877f2',
   },
+  headerTextContainer: {
+    flex: 1,
+  },
   author: {
     fontWeight: '700',
     fontSize: 15,
@@ -303,28 +360,30 @@ const styles = StyleSheet.create({
     height: 340,
     backgroundColor: '#f1f5f9',
   },
-  countsBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
-  },
-  likesCountGroup: {
+  reactionsOverviewBar: {
     flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
     gap: 6,
   },
-  miniReactionIcon: {
+  stackedIconsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  miniReactionBadge: {
     width: 18,
     height: 18,
     borderRadius: 9,
     backgroundColor: '#1877f2',
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#ffffff',
   },
-  countsText: {
+  reactionCountText: {
     fontSize: 13,
     color: '#64748b',
     fontWeight: '600',
@@ -332,8 +391,13 @@ const styles = StyleSheet.create({
   actionsBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 8,
     paddingVertical: 4,
+  },
+  actionItem: {
+    flex: 1,
+    alignItems: 'center',
   },
   modalOverlay: {
     flex: 1,
