@@ -1,261 +1,326 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, TextInput } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
+import React, { useEffect, useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Image,
+  Alert,
+  ActivityIndicator,
+  Modal,
+  TextInput,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { updateProfile, supabase } from '../../services/userService';
-import { Loader } from '../../components/Loader';
 import { theme } from '../../theme';
+import { fetchUserProfile, updateUserProfile } from '../../services/userService';
+import { Loader } from '../../components/Loader';
 
 interface EditProfileScreenProps {
   navigation: any;
-  route?: any;
 }
 
-export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({ navigation, route }) => {
-  const profile = route?.params?.profile || {};
+export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({ navigation }) => {
+  const [loading, setLoading] = useState<boolean>(true);
+  const [saving, setSaving] = useState<boolean>(false);
+  const [profile, setProfile] = useState<any>({});
+  
+  // Modal states for editing dynamic fields
+  const [modalVisible, setModalVisible] = useState<boolean>(false);
+  const [editingField, setEditingField] = useState<string>('');
+  const [inputValue, setInputValue] = useState<string>('');
 
-  const [avatar, setAvatar] = useState<string | null>(profile?.avatar_url || null);
-  const [cover, setCover] = useState<string | null>(profile?.cover_url || null);
-  const [bio, setBio] = useState<string>(profile?.bio || '');
-  const [dob, setDob] = useState<string>(profile?.dob || '');
-  const [gender, setGender] = useState<string>(profile?.gender || '');
-  const [website, setWebsite] = useState<string>(profile?.website || '');
-  const [phone, setPhone] = useState<string>(profile?.phone || '');
+  useEffect(() => {
+    loadData();
+  }, []);
 
-  const [loading, setLoading] = useState(false);
-  const [expandedSection, setExpandedSection] = useState<string | null>('intro');
-
-  const toggleSection = (section: string) => {
-    setExpandedSection(expandedSection === section ? null : section);
-  };
-
-  const pickImage = async (type: 'avatar' | 'cover') => {
+  const loadData = async () => {
     try {
-      let result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        // Profile picture = 1:1, Cover photo = 16:9 (Banner style)
-        aspect: type === 'avatar' ? [1, 1] : [16, 9],
-        quality: 0.7,
-      });
-
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        if (type === 'avatar') {
-          setAvatar(result.assets[0].uri);
-        } else {
-          setCover(result.assets[0].uri);
-        }
+      setLoading(true);
+      const data = await fetchUserProfile();
+      if (data) {
+        setProfile(data);
       }
-    } catch (e) {
-      Alert.alert('Error', 'Unable to pick image. Please try again.');
-    }
-  };
-
-  const uploadFileAsync = async (uri: string, folder: string) => {
-    if (!uri || !uri.startsWith('file://')) return uri;
-    try {
-      const response = await fetch(uri);
-      const blob = await response.blob();
-      const fileExt = uri.split('.').pop() || 'jpg';
-      const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-      const filePath = `${folder}/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage.from('profiles').upload(filePath, blob, {
-        cacheControl: '3600',
-        upsert: true,
-      });
-
-      if (uploadError) throw uploadError;
-
-      const { data } = supabase.storage.from('profiles').getPublicUrl(filePath);
-      return data.publicUrl;
     } catch (error) {
-      console.log(`Background Upload Error (${folder}):`, error);
-      return uri;
-    }
-  };
-
-  const handleSave = async () => {
-    setLoading(true);
-
-    // Initial Save & Go Back Immediately (Optimistic UI)
-    try {
-      const initialProfileData = {
-        avatar_url: avatar,
-        cover_url: cover,
-        bio: bio.trim(),
-        dob: dob.trim(),
-        gender: gender.trim(),
-        website: website.trim(),
-        phone: phone.trim(),
-      };
-
-      // Instantly save text fields and local image URIs
-      await updateProfile(initialProfileData);
-
-      // Navigate back straight away without making user wait
-      navigation.goBack();
-
-      // Background Async Processing for Heavy Media Uploads
-      setTimeout(async () => {
-        try {
-          let finalAvatarUrl = avatar;
-          let finalCoverUrl = cover;
-
-          if (avatar && avatar.startsWith('file://')) {
-            finalAvatarUrl = await uploadFileAsync(avatar, 'avatars');
-          }
-
-          if (cover && cover.startsWith('file://')) {
-            finalCoverUrl = await uploadFileAsync(cover, 'covers');
-          }
-
-          // Quiet background sync once media is uploaded
-          if (finalAvatarUrl !== avatar || finalCoverUrl !== cover) {
-            await updateProfile({
-              ...initialProfileData,
-              avatar_url: finalAvatarUrl,
-              cover_url: finalCoverUrl,
-            });
-          }
-        } catch (bgError) {
-          console.log('Background sync process error:', bgError);
-        }
-      }, 100);
-
-    } catch (error: any) {
-      Alert.alert('Save Failed', error.message || 'Unable to update profile.');
+      Alert.alert('Error', 'Failed to load profile details.');
+    } finally {
       setLoading(false);
     }
   };
 
+  const handleEditPress = (fieldKey: string, currentValue: string) => {
+    setEditingField(fieldKey);
+    setInputValue(currentValue || '');
+    setModalVisible(true);
+  };
+
+  const handleSaveField = async () => {
+    try {
+      setSaving(true);
+      const updatedData = { ...profile, [editingField]: inputValue };
+      await updateUserProfile(updatedData);
+      setProfile(updatedData);
+      setModalVisible(false);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update field.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.loaderContainer}>
+        <Loader />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
+      {/* Top Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} activeOpacity={0.7}>
-          <Ionicons name="chevron-back" size={24} color={theme.colors.text || '#000'} />
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color={theme.colors.text || '#000'} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Edit profile</Text>
-        <TouchableOpacity onPress={handleSave} disabled={loading} activeOpacity={0.7}>
-          {loading ? <Loader /> : <Text style={styles.saveText}>Save</Text>}
-        </TouchableOpacity>
+        <View style={{ width: 24 }} />
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContainer}>
-        <View style={styles.mediaContainer}>
-          <View style={styles.coverBox}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* Cover & Profile Images Section */}
+        <View style={styles.imagesSection}>
+          <View style={styles.coverContainer}>
             <Image
-              source={{ uri: cover || 'https://via.placeholder.com/800x450' }}
+              source={{ uri: profile?.cover_url || 'https://via.placeholder.com/800x400' }}
               style={styles.coverImage}
             />
-            <TouchableOpacity style={styles.coverCameraButton} onPress={() => pickImage('cover')}>
+            <TouchableOpacity style={styles.cameraIconCover}>
               <Ionicons name="camera" size={18} color="#000" />
             </TouchableOpacity>
           </View>
-
-          <View style={styles.avatarWrapper}>
+          <View style={styles.avatarContainer}>
             <Image
-              source={{ uri: avatar || 'https://via.placeholder.com/150' }}
+              source={{ uri: profile?.avatar_url || 'https://via.placeholder.com/150' }}
               style={styles.avatarImage}
             />
-            <TouchableOpacity style={styles.avatarCameraButton} onPress={() => pickImage('avatar')}>
-              <Ionicons name="camera" size={14} color="#000" />
+            <TouchableOpacity style={styles.cameraIconAvatar}>
+              <Ionicons name="camera" size={16} color="#000" />
             </TouchableOpacity>
           </View>
         </View>
 
-        <TouchableOpacity style={styles.accordionHeader} onPress={() => toggleSection('intro')}>
-          <Text style={styles.accordionTitle}>Intro</Text>
-          <Ionicons name={expandedSection === 'intro' ? 'chevron-up' : 'chevron-down'} size={20} color="#000" />
+        {/* Intro Accordion Group */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Intro</Text>
+          <Ionicons name="chevron-up" size={20} color={theme.colors.textSecondary || '#65676b'} />
+        </View>
+
+        <TouchableOpacity 
+          style={styles.itemRow} 
+          onPress={() => handleEditPress('bio', profile?.bio)}
+        >
+          <Ionicons name="hand-left-outline" size={22} color={theme.colors.text || '#000'} style={styles.itemIcon} />
+          <Text style={styles.itemText}>{profile?.bio || 'About you'}</Text>
         </TouchableOpacity>
 
-        {expandedSection === 'intro' && (
-          <View style={styles.accordionBody}>
-            <Text style={styles.inputLabel}>Bio / About you</Text>
-            <TextInput
-              style={[styles.input, styles.multilineInput]}
-              value={bio}
-              onChangeText={setBio}
-              placeholder="Describe yourself..."
-              placeholderTextColor="#9ca3af"
-              multiline
-            />
-          </View>
-        )}
-
-        <TouchableOpacity style={styles.accordionHeader} onPress={() => toggleSection('personal')}>
-          <Text style={styles.accordionTitle}>Personal details</Text>
-          <Ionicons name={expandedSection === 'personal' ? 'chevron-up' : 'chevron-down'} size={20} color="#000" />
+        <TouchableOpacity style={styles.itemRow}>
+          <Ionicons name="pin-outline" size={22} color={theme.colors.text || '#000'} style={styles.itemIcon} />
+          <Text style={styles.itemText}>Pinned details</Text>
         </TouchableOpacity>
 
-        {expandedSection === 'personal' && (
-          <View style={styles.accordionBody}>
-            <View style={styles.rowItem}>
-              <Ionicons name="gift-outline" size={20} color="#65676b" />
-              <TextInput
-                style={styles.inlineInput}
-                value={dob}
-                onChangeText={setDob}
-                placeholder="Date of birth (e.g. 5 July 1998)"
-                placeholderTextColor="#9ca3af"
-              />
-            </View>
+        {/* Personal Details Accordion Group */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Personal details</Text>
+          <Ionicons name="chevron-up" size={20} color={theme.colors.textSecondary || '#65676b'} />
+        </View>
 
-            <View style={styles.rowItem}>
-              <Ionicons name="transgender-outline" size={20} color="#65676b" />
-              <TextInput
-                style={styles.inlineInput}
-                value={gender}
-                onChangeText={setGender}
-                placeholder="Gender (e.g. Male, Female)"
-                placeholderTextColor="#9ca3af"
-              />
-            </View>
-          </View>
-        )}
-
-        <TouchableOpacity style={styles.accordionHeader} onPress={() => toggleSection('links')}>
-          <Text style={styles.accordionTitle}>Links</Text>
-          <Ionicons name={expandedSection === 'links' ? 'chevron-up' : 'chevron-down'} size={20} color="#000" />
+        <TouchableOpacity 
+          style={styles.itemRow} 
+          onPress={() => handleEditPress('current_city', profile?.current_city)}
+        >
+          <Ionicons name="location-outline" size={22} color={theme.colors.text || '#000'} style={styles.itemIcon} />
+          <Text style={styles.itemText}>{profile?.current_city || 'Current city or town'}</Text>
         </TouchableOpacity>
 
-        {expandedSection === 'links' && (
-          <View style={styles.accordionBody}>
-            <View style={styles.rowItem}>
-              <Ionicons name="link-outline" size={20} color="#65676b" />
-              <TextInput
-                style={styles.inlineInput}
-                value={website}
-                onChangeText={setWebsite}
-                placeholder="Website URL"
-                placeholderTextColor="#9ca3af"
-                autoCapitalize="none"
-              />
-            </View>
-          </View>
-        )}
-
-        <TouchableOpacity style={styles.accordionHeader} onPress={() => toggleSection('contact')}>
-          <Text style={styles.accordionTitle}>Contact info</Text>
-          <Ionicons name={expandedSection === 'contact' ? 'chevron-up' : 'chevron-down'} size={20} color="#000" />
+        <TouchableOpacity 
+          style={styles.itemRow} 
+          onPress={() => handleEditPress('home_town', profile?.home_town)}
+        >
+          <Ionicons name="home-outline" size={22} color={theme.colors.text || '#000'} style={styles.itemIcon} />
+          <Text style={styles.itemText}>{profile?.home_town || 'Home town'}</Text>
         </TouchableOpacity>
 
-        {expandedSection === 'contact' && (
-          <View style={styles.accordionBody}>
-            <View style={styles.rowItem}>
-              <Ionicons name="call-outline" size={20} color="#65676b" />
-              <TextInput
-                style={styles.inlineInput}
-                value={phone}
-                onChangeText={setPhone}
-                placeholder="Phone number"
-                placeholderTextColor="#9ca3af"
-                keyboardType="phone-pad"
-              />
+        <TouchableOpacity 
+          style={styles.itemRowWithEdit}
+          onPress={() => handleEditPress('dob', profile?.dob)}
+        >
+          <View style={styles.rowLeft}>
+            <Ionicons name="cake-outline" size={22} color={theme.colors.text || '#000'} style={styles.itemIcon} />
+            <Text style={styles.itemText}>{profile?.dob || 'Add Birthday'}</Text>
+          </View>
+          <Ionicons name="pencil" size={18} color={theme.colors.textSecondary || '#65676b'} />
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={styles.itemRow} 
+          onPress={() => handleEditPress('relationship_status', profile?.relationship_status)}
+        >
+          <Ionicons name="heart-outline" size={22} color={theme.colors.text || '#000'} style={styles.itemIcon} />
+          <Text style={styles.itemText}>{profile?.relationship_status || 'Relationship status'}</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.itemRow}>
+          <Ionicons name="people-outline" size={22} color={theme.colors.text || '#000'} style={styles.itemIcon} />
+          <Text style={styles.itemText}>Family</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={styles.itemRowWithEdit}
+          onPress={() => handleEditPress('gender', profile?.gender)}
+        >
+          <View style={styles.rowLeft}>
+            <Ionicons name="male-female-outline" size={22} color={theme.colors.text || '#000'} style={styles.itemIcon} />
+            <Text style={styles.itemText}>{profile?.gender || 'Gender'}</Text>
+          </View>
+          <Ionicons name="pencil" size={18} color={theme.colors.textSecondary || '#65676b'} />
+        </TouchableOpacity>
+
+        {/* Hobbies Section */}
+        <TouchableOpacity style={styles.sectionHeader}>
+          <View style={styles.rowLeft}>
+            <Ionicons name="shapes-outline" size={22} color={theme.colors.text || '#000'} style={styles.itemIcon} />
+            <Text style={styles.sectionTitle}>Hobbies</Text>
+          </View>
+        </TouchableOpacity>
+
+        {/* Interests Section */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Interests</Text>
+          <Ionicons name="chevron-up" size={20} color={theme.colors.textSecondary || '#65676b'} />
+        </View>
+
+        <TouchableOpacity style={styles.itemRow}>
+          <Ionicons name="musical-notes-outline" size={22} color={theme.colors.text || '#000'} style={styles.itemIcon} />
+          <Text style={styles.itemText}>Music</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.itemRow}>
+          <Ionicons name="tv-outline" size={22} color={theme.colors.text || '#000'} style={styles.itemIcon} />
+          <Text style={styles.itemText}>TV programmes</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.itemRow}>
+          <Ionicons name="film-outline" size={22} color={theme.colors.text || '#000'} style={styles.itemIcon} />
+          <Text style={styles.itemText}>Films</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.itemRow}>
+          <Ionicons name="game-controller-outline" size={22} color={theme.colors.text || '#000'} style={styles.itemIcon} />
+          <Text style={styles.itemText}>Games</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={styles.itemRowWithEdit}
+          onPress={() => handleEditPress('sports', profile?.sports)}
+        >
+          <View style={styles.rowLeft}>
+            <Ionicons name="shirt-outline" size={22} color={theme.colors.text || '#000'} style={styles.itemIcon} />
+            <View>
+              <Text style={styles.itemText}>Sports teams and athletes</Text>
+              {profile?.sports ? <Text style={styles.subText}>{profile.sports}</Text> : null}
             </View>
           </View>
-        )}
+          <Ionicons name="pencil" size={18} color={theme.colors.textSecondary || '#65676b'} />
+        </TouchableOpacity>
+
+        {/* Links Section */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Links</Text>
+          <Ionicons name="chevron-up" size={20} color={theme.colors.textSecondary || '#65676b'} />
+        </View>
+
+        <TouchableOpacity 
+          style={styles.itemRowWithEdit}
+          onPress={() => handleEditPress('website', profile?.website)}
+        >
+          <View style={styles.rowLeft}>
+            <Ionicons name="link-outline" size={22} color={theme.colors.text || '#000'} style={styles.itemIcon} />
+            <View>
+              <Text style={styles.itemText}>Links</Text>
+              {profile?.website ? <Text style={styles.subText}>{profile.website}</Text> : null}
+            </View>
+          </View>
+          <Ionicons name="pencil" size={18} color={theme.colors.textSecondary || '#65676b'} />
+        </TouchableOpacity>
+
+        {/* Contact Info Section */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Contact info</Text>
+          <Ionicons name="chevron-up" size={20} color={theme.colors.textSecondary || '#65676b'} />
+        </View>
+
+        <TouchableOpacity style={styles.itemRow}>
+          <Ionicons name="at-outline" size={22} color={theme.colors.text || '#000'} style={styles.itemIcon} />
+          <Text style={styles.itemText}>Social media</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={styles.itemRowWithEdit}
+          onPress={() => handleEditPress('phone', profile?.phone)}
+        >
+          <View style={styles.rowLeft}>
+            <Ionicons name="call-outline" size={22} color={theme.colors.text || '#000'} style={styles.itemIcon} />
+            <View>
+              <Text style={styles.itemText}>{profile?.phone || 'Add phone number'}</Text>
+            </View>
+          </View>
+          <Ionicons name="pencil" size={18} color={theme.colors.textSecondary || '#65676b'} />
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={styles.itemRow}
+          onPress={() => handleEditPress('email', profile?.email)}
+        >
+          <Ionicons name="mail-outline" size={22} color={theme.colors.text || '#000'} style={styles.itemIcon} />
+          <Text style={styles.itemText}>{profile?.email || 'Add email address'}</Text>
+        </TouchableOpacity>
       </ScrollView>
+
+      {/* Generic Edit Modal */}
+      <Modal visible={modalVisible} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>Update {editingField.replace('_', ' ')}</Text>
+            <TextInput
+              style={styles.modalInput}
+              value={inputValue}
+              onChangeText={setInputValue}
+              placeholder="Enter details..."
+              placeholderTextColor="#999"
+            />
+            <View style={styles.modalActions}>
+              <TouchableOpacity 
+                style={styles.cancelBtn} 
+                onPress={() => setModalVisible(false)}
+              >
+                <Text style={styles.cancelBtnText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.saveBtn} 
+                onPress={handleSaveField}
+                disabled={saving}
+              >
+                {saving ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <Text style={styles.saveBtnText}>Save</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -265,121 +330,168 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#ffffff',
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  loaderContainer: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
+  },
+  header: {
+    height: 56,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
-    height: 54,
     borderBottomWidth: 1,
     borderBottomColor: '#e4e6eb',
-    marginTop: 30,
+  },
+  backButton: {
+    padding: 4,
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#050505',
   },
-  saveText: {
-    fontSize: 16,
-    color: '#1877f2',
-    fontWeight: 'bold',
-  },
-  scrollContainer: {
+  scrollContent: {
     paddingBottom: 40,
   },
-  mediaContainer: {
+  imagesSection: {
     marginBottom: 20,
   },
-  coverBox: {
-    width: '100%',
-    height: 140,
-    backgroundColor: '#e4e6eb',
+  coverContainer: {
+    height: 160,
+    backgroundColor: '#ccc',
     position: 'relative',
   },
   coverImage: {
     width: '100%',
     height: '100%',
   },
-  coverCameraButton: {
+  cameraIconCover: {
     position: 'absolute',
-    bottom: 10,
+    bottom: 12,
     right: 12,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#e4e6eb',
     padding: 8,
     borderRadius: 20,
-    elevation: 2,
   },
-  avatarWrapper: {
+  avatarContainer: {
     position: 'absolute',
     bottom: -30,
     left: 20,
+    position: 'relative',
+    marginTop: -50,
+    marginLeft: 20,
+    width: 100,
+    height: 100,
   },
   avatarImage: {
-    width: 85,
-    height: 85,
-    borderRadius: 42.5,
-    borderWidth: 3,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    borderWidth: 4,
     borderColor: '#ffffff',
-    backgroundColor: '#e4e6eb',
   },
-  avatarCameraButton: {
+  cameraIconAvatar: {
     position: 'absolute',
-    bottom: 2,
-    right: 2,
-    backgroundColor: '#ffffff',
+    bottom: 4,
+    right: 4,
+    backgroundColor: '#e4e6eb',
     padding: 6,
     borderRadius: 15,
-    elevation: 2,
   },
-  accordionHeader: {
+  sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 14,
     paddingHorizontal: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#f0f2f5',
+    paddingTop: 18,
+    paddingBottom: 8,
   },
-  accordionTitle: {
-    fontSize: 17,
+  sectionTitle: {
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#050505',
   },
-  accordionBody: {
-    paddingHorizontal: 16,
-    paddingBottom: 14,
-  },
-  inputLabel: {
-    fontSize: 13,
-    color: '#65676b',
-    marginBottom: 6,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#e4e6eb',
-    borderRadius: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    fontSize: 15,
-    color: '#050505',
-  },
-  multilineInput: {
-    height: 80,
-    textAlignVertical: 'top',
-  },
-  rowItem: {
+  itemRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 6,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
   },
-  inlineInput: {
+  itemRowWithEdit: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  rowLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
     flex: 1,
+  },
+  itemIcon: {
+    marginRight: 16,
+  },
+  itemText: {
     fontSize: 15,
     color: '#050505',
-    marginLeft: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e4e6eb',
-    paddingVertical: 6,
+  },
+  subText: {
+    fontSize: 13,
+    color: '#65676b',
+    marginTop: 2,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContainer: {
+    width: '85%',
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 20,
+    elevation: 5,
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 12,
+    textTransform: 'capitalize',
+  },
+  modalInput: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 6,
+    paddingHorizontal: 12,
+    height: 44,
+    marginBottom: 20,
+    color: '#000',
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+  },
+  cancelBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    marginRight: 8,
+  },
+  cancelBtnText: {
+    color: '#65676b',
+    fontWeight: '600',
+  },
+  saveBtn: {
+    backgroundColor: '#1877f2',
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    borderRadius: 6,
+  },
+  saveBtnText: {
+    color: '#fff',
+    fontWeight: 'bold',
   },
 });
