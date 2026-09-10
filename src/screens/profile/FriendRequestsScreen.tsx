@@ -1,7 +1,18 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, StyleSheet, Image, TouchableOpacity, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  FlatList,
+  StyleSheet,
+  Image,
+  TouchableOpacity,
+  Alert,
+  ActivityIndicator,
+  RefreshControl,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
-import { fetchFriendRequests, acceptFriendRequest } from '../../services/userService';
+import { fetchFriendRequests, acceptFriendRequest, rejectFriendRequest } from '../../services/userService';
 import { Loader } from '../../components/Loader';
 import { theme } from '../../theme';
 
@@ -12,10 +23,10 @@ interface FriendRequestsScreenProps {
 export const FriendRequestsScreen: React.FC<FriendRequestsScreenProps> = ({ navigation }) => {
   const [requests, setRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [actionId, setActionId] = useState<string | null>(null);
 
   const loadRequests = async () => {
-    setLoading(true);
     try {
       const data = await fetchFriendRequests();
       if (data) setRequests(data);
@@ -23,6 +34,7 @@ export const FriendRequestsScreen: React.FC<FriendRequestsScreenProps> = ({ navi
       Alert.alert('Error', 'Unable to fetch friend requests.');
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -30,13 +42,30 @@ export const FriendRequestsScreen: React.FC<FriendRequestsScreenProps> = ({ navi
     loadRequests();
   }, []);
 
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadRequests();
+  };
+
   const handleAccept = async (requestId: string) => {
     setActionId(requestId);
     try {
       await acceptFriendRequest(requestId);
       setRequests((prev) => prev.filter((item) => item.id !== requestId));
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Could not accept friend request.');
+      Alert.alert('Error', error.message || 'Could not accept request.');
+    } finally {
+      setActionId(null);
+    }
+  };
+
+  const handleReject = async (requestId: string) => {
+    setActionId(requestId);
+    try {
+      await rejectFriendRequest(requestId);
+      setRequests((prev) => prev.filter((item) => item.id !== requestId));
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Could not delete request.');
     } finally {
       setActionId(null);
     }
@@ -57,27 +86,51 @@ export const FriendRequestsScreen: React.FC<FriendRequestsScreenProps> = ({ navi
       ) : (
         <FlatList
           data={requests}
-          keyExtractor={(item) => item.id.toString()}
+          keyExtractor={(item, index) => item.id?.toString() || index.toString()}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={theme.colors.primary}
+              colors={[theme.colors.primary]}
+            />
+          }
           renderItem={({ item }) => (
             <View style={styles.item}>
-              <Image 
-                source={{ uri: item.profiles?.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500' }} 
-                style={styles.avatar} 
-              />
+              {item.profiles?.avatar_url ? (
+                <Image source={{ uri: item.profiles.avatar_url }} style={styles.avatar} />
+              ) : (
+                <View style={styles.avatarPlaceholder}>
+                  <Ionicons name="person" size={28} color={theme.colors.textSecondary} />
+                </View>
+              )}
+
               <View style={styles.info}>
-                <Text style={styles.name}>{item.profiles?.full_name || 'User'}</Text>
+                <Text style={styles.name} numberOfLines={1}>
+                  {item.profiles?.full_name || 'User'}
+                </Text>
+
                 <View style={styles.buttonGroup}>
-                  <TouchableOpacity 
-                    style={[styles.acceptButton, actionId === item.id && styles.disabledButton]} 
+                  <TouchableOpacity
+                    style={[styles.acceptButton, actionId === item.id && styles.disabledButton]}
                     onPress={() => handleAccept(item.id)}
                     disabled={actionId === item.id}
                     activeOpacity={0.8}
                   >
                     {actionId === item.id ? (
-                      <Loader />
+                      <ActivityIndicator size="small" color="#ffffff" />
                     ) : (
                       <Text style={styles.acceptText}>Confirm</Text>
                     )}
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.deleteButton, actionId === item.id && styles.disabledButton]}
+                    onPress={() => handleReject(item.id)}
+                    disabled={actionId === item.id}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.deleteText}>Delete</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -85,6 +138,7 @@ export const FriendRequestsScreen: React.FC<FriendRequestsScreenProps> = ({ navi
           )}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
+              <Ionicons name="person-add-outline" size={48} color={theme.colors.textSecondary} />
               <Text style={styles.emptyText}>No pending friend requests.</Text>
             </View>
           }
@@ -97,7 +151,7 @@ export const FriendRequestsScreen: React.FC<FriendRequestsScreenProps> = ({ navi
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background || '#f9fafb',
+    backgroundColor: theme.colors.background,
   },
   loaderContainer: {
     flex: 1,
@@ -113,31 +167,49 @@ const styles = StyleSheet.create({
     borderBottomColor: theme.colors.border || '#e5e7eb',
   },
   avatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     marginRight: theme.spacing.md,
     backgroundColor: theme.colors.grayLight || '#f3f4f6',
   },
+  avatarPlaceholder: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    marginRight: theme.spacing.md,
+    backgroundColor: theme.colors.grayLight || '#f3f4f6',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   info: {
     flex: 1,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    justifyContent: 'center',
   },
   name: {
     fontSize: theme.typography.fontSizes.md,
     fontWeight: 'bold',
     color: theme.colors.text,
+    marginBottom: 8,
   },
   buttonGroup: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   acceptButton: {
-    backgroundColor: theme.colors.primary || '#1e293b',
+    backgroundColor: theme.colors.primary,
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 7,
+    borderRadius: 6,
+    minWidth: 85,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+  },
+  deleteButton: {
+    backgroundColor: theme.colors.grayLight || '#e4e6eb',
+    paddingHorizontal: 16,
+    paddingVertical: 7,
     borderRadius: 6,
     minWidth: 85,
     alignItems: 'center',
@@ -151,12 +223,19 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: theme.typography.fontSizes.sm,
   },
+  deleteText: {
+    color: theme.colors.text,
+    fontWeight: 'bold',
+    fontSize: theme.typography.fontSizes.sm,
+  },
   emptyContainer: {
     padding: 40,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   emptyText: {
     color: theme.colors.textSecondary,
     fontSize: theme.typography.fontSizes.md,
+    marginTop: 10,
   },
 });
