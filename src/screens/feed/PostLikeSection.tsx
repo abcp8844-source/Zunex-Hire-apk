@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
 import { LikeButton } from '../../components/LikeButton';
 import { toggleLikePost } from '../../services/postService';
 
@@ -23,14 +23,39 @@ export const PostLikeSection: React.FC<PostLikeSectionProps> = ({
   const [localTotalReactions, setLocalTotalReactions] = useState(totalReactions);
   const [localUserReaction, setLocalUserReaction] = useState(userReaction);
 
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const pickerAnim = useRef(new Animated.Value(0)).current;
+
   useEffect(() => {
     setLocalIsLiked(isLiked);
     setLocalTotalReactions(totalReactions);
     setLocalUserReaction(userReaction);
   }, [isLiked, totalReactions, userReaction]);
 
+  useEffect(() => {
+    if (showReactionPicker) {
+      Animated.spring(pickerAnim, {
+        toValue: 1,
+        friction: 6,
+        tension: 80,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      Animated.timing(pickerAnim, {
+        toValue: 0,
+        duration: 150,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [showReactionPicker]);
+
   const handleLike = async (reactionType: string = 'like') => {
     setShowReactionPicker(false);
+
+    Animated.sequence([
+      Animated.timing(scaleAnim, { toValue: 1.25, duration: 100, useNativeDriver: true }),
+      Animated.spring(scaleAnim, { toValue: 1, friction: 4, useNativeDriver: true }),
+    ]).start();
 
     const prevIsLiked = localIsLiked;
     const prevTotal = localTotalReactions;
@@ -57,10 +82,38 @@ export const PostLikeSection: React.FC<PostLikeSectionProps> = ({
     }
   };
 
+  const getReactionEmoji = (type?: string) => {
+    switch (type) {
+      case 'love': return '❤️';
+      case 'care': return '🥰';
+      case 'haha': return '😆';
+      case 'wow': return '😮';
+      case 'sad': return '😢';
+      case 'angry': return '😡';
+      default: return '👍';
+    }
+  };
+
   return (
-    <View style={{ flex: 1, position: 'relative' }}>
+    <View style={styles.mainContainer}>
       {showReactionPicker && (
-        <View style={styles.reactionPickerPopup}>
+        <Animated.View
+          style={[
+            styles.reactionPickerPopup,
+            {
+              opacity: pickerAnim,
+              transform: [
+                { scale: pickerAnim },
+                {
+                  translateY: pickerAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [15, 0],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
           <TouchableOpacity onPress={() => handleLike('like')}><Text style={styles.pickerEmoji}>👍</Text></TouchableOpacity>
           <TouchableOpacity onPress={() => handleLike('love')}><Text style={styles.pickerEmoji}>❤️</Text></TouchableOpacity>
           <TouchableOpacity onPress={() => handleLike('care')}><Text style={styles.pickerEmoji}>🥰</Text></TouchableOpacity>
@@ -68,23 +121,54 @@ export const PostLikeSection: React.FC<PostLikeSectionProps> = ({
           <TouchableOpacity onPress={() => handleLike('wow')}><Text style={styles.pickerEmoji}>😮</Text></TouchableOpacity>
           <TouchableOpacity onPress={() => handleLike('sad')}><Text style={styles.pickerEmoji}>😢</Text></TouchableOpacity>
           <TouchableOpacity onPress={() => handleLike('angry')}><Text style={styles.pickerEmoji}>😡</Text></TouchableOpacity>
+        </Animated.View>
+      )}
+
+      {localTotalReactions > 0 && (
+        <View style={styles.topReactionInfoRow}>
+          <Animated.View style={[styles.reactionIconsOverlap, { transform: [{ scale: scaleAnim }] }]}>
+            <Text style={styles.miniEmoji}>👍</Text>
+            {localTotalReactions > 1 && (
+              <Text style={[styles.miniEmoji, styles.offsetEmoji]}>
+                {localUserReaction && localUserReaction !== 'like' ? getReactionEmoji(localUserReaction) : '❤️'}
+              </Text>
+            )}
+          </Animated.View>
+          <Text style={styles.reactionCountNumber}>{localTotalReactions}</Text>
         </View>
       )}
 
-      <LikeButton
-        isLiked={localIsLiked}
-        likeCount={localTotalReactions}
-        onPress={() => handleLike(localUserReaction || 'like')}
-        onLongPress={() => setShowReactionPicker(true)}
-      />
+      <View style={styles.bottomButtonRow}>
+        <LikeButton
+          isLiked={localIsLiked}
+          likeCount={0}
+          onPress={() => handleLike(localUserReaction || 'like')}
+          onLongPress={() => setShowReactionPicker(true)}
+        />
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
+  mainContainer: {
+    flex: 1,
+    position: 'relative',
+    paddingVertical: 4,
+  },
+  topReactionInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+    paddingHorizontal: 4,
+  },
+  bottomButtonRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   reactionPickerPopup: {
     position: 'absolute',
-    bottom: 45,
+    bottom: 55,
     left: 0,
     backgroundColor: '#ffffff',
     borderRadius: 30,
@@ -101,5 +185,21 @@ const styles = StyleSheet.create({
   },
   pickerEmoji: {
     fontSize: 24,
+  },
+  reactionIconsOverlap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  miniEmoji: {
+    fontSize: 14,
+  },
+  offsetEmoji: {
+    marginLeft: -6,
+  },
+  reactionCountNumber: {
+    fontSize: 13,
+    color: '#65676b',
+    marginLeft: 6,
+    fontWeight: '500',
   },
 });
