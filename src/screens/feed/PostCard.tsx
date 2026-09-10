@@ -16,6 +16,7 @@ import { PostLikeSection } from './PostLikeSection';
 import { CommentSection } from './CommentSection';
 import { EditPostScreen } from './EditPostScreen';
 import { MediaViewerScreen } from './MediaViewerScreen';
+import { ReactionsModal } from './ReactionsModal';
 import { deletePost, savePost, reportPost, sharePost } from '../../services/postService';
 
 interface PostCardProps {
@@ -36,6 +37,7 @@ const formatCount = (num: number): string => {
 const PostCardComponent: React.FC<PostCardProps> = ({ post, currentUserId, onUpdate, navigation }) => {
   const [showComments, setShowComments] = useState(false);
   const [showOptionsModal, setShowOptionsModal] = useState(false);
+  const [showReactionsModal, setShowReactionsModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [selectedMedia, setSelectedMedia] = useState<string | null>(null);
 
@@ -100,8 +102,7 @@ const PostCardComponent: React.FC<PostCardProps> = ({ post, currentUserId, onUpd
   const totalReactions = post?.likes_count || 0;
   const totalComments = post?.comments_count || 0;
   const totalShares = post?.shares_count || 0;
-
-  const topReactions = post?.reaction_summary || ['like', 'love'];
+  const topReactions = post?.reaction_summary || [];
 
   return (
     <View style={styles.card}>
@@ -156,28 +157,36 @@ const PostCardComponent: React.FC<PostCardProps> = ({ post, currentUserId, onUpd
         </TouchableOpacity>
       ) : null}
 
-      {totalReactions > 0 && (
-        <View style={styles.reactionsOverviewBar}>
-          <View style={styles.stackedIconsContainer}>
-            {topReactions.slice(0, 3).map((reaction: string, index: number) => (
-              <View 
-                key={reaction + index} 
-                style={[
-                  styles.miniReactionBadge, 
-                  { zIndex: 3 - index, marginLeft: index > 0 ? -6 : 0 }
-                ]}
-              >
-                <Ionicons 
-                  name={reaction === 'love' ? 'heart' : 'thumbs-up'} 
-                  size={10} 
-                  color="#ffffff" 
-                />
+      <View style={styles.reactionsOverviewBar}>
+        <TouchableOpacity
+          style={styles.invisibleTriggerButton}
+          onPress={() => setShowReactionsModal(true)}
+          activeOpacity={0.7}
+        >
+          {totalReactions > 0 ? (
+            <>
+              <View style={styles.stackedIconsContainer}>
+                {topReactions.slice(0, 3).map((item: any, index: number) => (
+                  <View 
+                    key={(item?.type || index) + index} 
+                    style={[
+                      styles.miniReactionBadge, 
+                      { zIndex: 3 - index, marginLeft: index > 0 ? -6 : 0 }
+                    ]}
+                  >
+                    <Text style={styles.miniEmojiText}>
+                      {item?.emoji || '👍'}
+                    </Text>
+                  </View>
+                ))}
               </View>
-            ))}
-          </View>
-          <Text style={styles.reactionCountText}>{formatCount(totalReactions)}</Text>
-        </View>
-      )}
+              <Text style={styles.reactionCountText}>{formatCount(totalReactions)}</Text>
+            </>
+          ) : (
+            <Text style={styles.noReactionsText}>0</Text>
+          )}
+        </TouchableOpacity>
+      </View>
 
       <View style={styles.actionsBar}>
         <View style={styles.actionItem}>
@@ -192,14 +201,14 @@ const PostCardComponent: React.FC<PostCardProps> = ({ post, currentUserId, onUpd
 
         <View style={styles.actionItem}>
           <CommentButton
-            commentCount={formatCount(totalComments)}
+            commentCount=""
             onPress={() => setShowComments(!showComments)}
           />
         </View>
 
         <View style={styles.actionItem}>
           <ShareButton
-            shareCount={formatCount(totalShares)}
+            shareCount=""
             onPress={handleNativeShare}
           />
         </View>
@@ -210,6 +219,16 @@ const PostCardComponent: React.FC<PostCardProps> = ({ post, currentUserId, onUpd
           postId={post.id} 
           visible={showComments} 
           onClose={() => setShowComments(false)} 
+        />
+      )}
+
+      {showReactionsModal && post?.id && (
+        <ReactionsModal
+          visible={showReactionsModal}
+          postId={post.id}
+          totalReactions={totalReactions}
+          onClose={() => setShowReactionsModal(false)}
+          navigation={navigation}
         />
       )}
 
@@ -361,32 +380,45 @@ const styles = StyleSheet.create({
     backgroundColor: '#f1f5f9',
   },
   reactionsOverviewBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#f1f5f9',
+  },
+  invisibleTriggerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 6,
+    backgroundColor: 'transparent',
+    padding: 0,
+    margin: 0,
   },
   stackedIconsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   miniReactionBadge: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: '#1877f2',
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#ffffff',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#e4e6eb',
+  },
+  miniEmojiText: {
+    fontSize: 11,
   },
   reactionCountText: {
     fontSize: 13,
     color: '#64748b',
     fontWeight: '600',
+  },
+  noReactionsText: {
+    fontSize: 13,
+    color: '#94a3b8',
+    fontWeight: '500',
   },
   actionsBar: {
     flexDirection: 'row',
