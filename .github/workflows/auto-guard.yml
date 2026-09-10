@@ -4,11 +4,12 @@ on:
   push:
     branches: [ "*" ]
 
+permissions:
+  contents: write
+
 jobs:
   code-sanitizer:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
 
     steps:
       - name: Checkout Code
@@ -17,28 +18,32 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.12'
 
-      - name: Fix Python Syntax, Imports and Comments with Ruff
+      - name: Install Linter
         run: |
-          pip install --upgrade pip
+          python -m pip install --upgrade pip
           pip install ruff
-          ruff check . --fix --select E,F,W,I || true
 
-      - name: Setup Node and Handle Packages
+      - name: Run Python Audit and Fix
+        run: |
+          ruff check . --fix
+
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
 
-      - name: NPM Audit, Install and Build Check
+      - name: Handle Node Packages and Build
         run: |
           if [ -f "package.json" ]; then
             npm install
             npm run build --if-present
           fi
 
-      - name: Commit Cleaned Code Back to Repository
+      - name: Commit Fixed Code Back to Repository
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "🛡️ Auto-Guard: Cleaned syntax, imports and packages."
+          commit_message: "Auto-Guard: Fixed syntax, imports, and packages."
           push_options: '--force'
