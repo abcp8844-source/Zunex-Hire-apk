@@ -102,7 +102,7 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ navigation }) => {
 
       <View style={styles.createPostBar}>
         <TouchableOpacity
-          onPress={() => navigation.navigate('Profile')}
+          onPress={() => navigation.navigate('Profile', { userId: currentUser?.id })}
           activeOpacity={0.8}
         >
           <Image
