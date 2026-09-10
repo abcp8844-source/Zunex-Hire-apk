@@ -10,7 +10,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { supabase } from '../../services/supabase';
+import { supabase } from '../../services/postService';
 
 interface ReactionsModalProps {
   visible: boolean;
