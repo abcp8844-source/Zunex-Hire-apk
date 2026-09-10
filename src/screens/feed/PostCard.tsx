@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, memo } from 'react';
 import {
   View,
   Text,
@@ -24,7 +24,7 @@ interface PostCardProps {
   navigation?: any;
 }
 
-export const PostCard: React.FC<PostCardProps> = ({ post, currentUserId, onUpdate, navigation }) => {
+const PostCardComponent: React.FC<PostCardProps> = ({ post, currentUserId, onUpdate, navigation }) => {
   const [showComments, setShowComments] = useState(false);
   const [showOptionsModal, setShowOptionsModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -50,8 +50,8 @@ export const PostCard: React.FC<PostCardProps> = ({ post, currentUserId, onUpdat
 
   const handleReport = async () => {
     setShowOptionsModal(false);
-    Alert.alert('Reported', 'Thank you for reporting. We will review this post.');
     await reportPost(post.id);
+    Alert.alert('Reported', 'Thank you for reporting. We will review this post.');
   };
 
   const handleDelete = async () => {
@@ -197,6 +197,8 @@ export const PostCard: React.FC<PostCardProps> = ({ post, currentUserId, onUpdat
     </View>
   );
 };
+
+export const PostCard = memo(PostCardComponent);
 
 const styles = StyleSheet.create({
   card: {
