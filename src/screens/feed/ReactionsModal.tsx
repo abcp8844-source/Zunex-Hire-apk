@@ -33,7 +33,6 @@ interface ReactionTab {
   count: number;
 }
 
-// وہی فیس بک والے اورجنل PNG آئکنز جو آپ کی لائیک سکرین میں ہیں
 const FB_REACTIONS: Record<string, { label: string; icon: string }> = {
   like: { label: 'Like', icon: 'https://raw.githubusercontent.com/facebook/react-native/main/packages/rn-tester/js/assets/like.png' },
   love: { label: 'Love', icon: 'https://images.rawpixel.com/image_png_800/2022/10/rm378-02a.png' },
@@ -63,42 +62,99 @@ export const ReactionsModal: React.FC<ReactionsModalProps> = ({
     }
   }, [visible, postId]);
 
+  // لائیکس ٹیبل کے الگ الگ کالمز سے کاؤنٹ نکالنے کا طریقہ
   const fetchReactionSummary = async () => {
     try {
-      const { data, error } = await supabase.rpc('get_post_top_reactions', {
-        p_post_id: postId,
-      });
+      const { data, error } = await supabase
+        .from('likes')
+        .select('like, love, care, haha, wow, sad, angry')
+        .eq('post_id', postId);
 
       if (!error && data) {
-        // ڈیٹا بیس سے جو ٹاپ ری ایکشنز آئیں گے (جس کی تعداد زیادہ ہوگی وہ اوپر آئے گا)
+        const counts: Record<string, number> = {
+          like: 0,
+          love: 0,
+          care: 0,
+          haha: 0,
+          wow: 0,
+          sad: 0,
+          angry: 0,
+        };
+
+        data.forEach((row: any) => {
+          if (row.like) counts.like++;
+          if (row.love) counts.love++;
+          if (row.care) counts.care++;
+          if (row.haha) counts.haha++;
+          if (row.wow) counts.wow++;
+          if (row.sad) counts.sad++;
+          if (row.angry) counts.angry++;
+        });
+
         const dynamicTabs: ReactionTab[] = [
           { type: 'all', label: `All ${totalReactions}`, count: totalReactions },
-          ...data.map((item: any) => ({
-            type: item.reaction_type,
-            label: `${item.reaction_count}`,
-            count: item.reaction_count,
-          })),
         ];
+
+        Object.keys(counts).forEach((key) => {
+          if (counts[key] > 0) {
+            dynamicTabs.push({
+              type: key,
+              label: `${counts[key]}`,
+              count: counts[key],
+            });
+          }
+        });
+
         setTabs(dynamicTabs);
       }
-    } catch (e) {
-      // Silent error
-    }
+    } catch (e) {}
   };
 
+  // کالمز کی بنیاد پر یوزرز کا ڈیٹا نکالنے کا طریقہ
   const fetchUsers = async (filterType: string) => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.rpc('get_post_reactions_detail', {
-        p_post_id: postId,
-        p_filter_type: filterType,
-      });
+      let query = supabase
+        .from('likes')
+        .select(`
+          user_id,
+          like, love, care, haha, wow, sad, angry,
+          auth_users:user_id ( raw_user_meta_data )
+        `)
+        .eq('post_id', postId);
+
+      if (filterType !== 'all') {
+        query = query.eq(filterType, true);
+      }
+
+      const { data, error } = await query;
 
       if (!error && data) {
-        setUsers(data);
+        const formattedUsers: ReactionUser[] = data.map((item: any) => {
+          let rType = 'like';
+          if (filterType !== 'all') {
+            rType = filterType;
+          } else {
+            if (item.love) rType = 'love';
+            else if (item.care) rType = 'care';
+            else if (item.haha) rType = 'haha';
+            else if (item.wow) rType = 'wow';
+            else if (item.sad) rType = 'sad';
+            else if (item.angry) rType = 'angry';
+          }
+
+          const meta = item.auth_users?.raw_user_meta_data || {};
+          return {
+            user_id: item.user_id,
+            full_name: meta.full_name || 'User',
+            avatar_url: meta.avatar_url || '',
+            reaction_type: rType,
+          };
+        });
+
+        setUsers(formattedUsers);
       }
     } catch (e) {
-      // Silent error
     } finally {
       setLoading(false);
     }
