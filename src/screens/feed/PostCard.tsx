@@ -34,14 +34,12 @@ const PostCardComponent: React.FC<PostCardProps> = ({ post, currentUserId, onUpd
   const [isEditing, setIsEditing] = useState(false);
   const [selectedMedia, setSelectedMedia] = useState<string | null>(null);
 
-  // States for Reactions Feature
   const [showReactionPicker, setShowReactionPicker] = useState(false);
   const [showReactionsListModal, setShowReactionsListModal] = useState(false);
   const [selectedReactionFilter, setSelectedReactionFilter] = useState('all');
 
   const isOwner = post.user_id === currentUserId;
 
-  // Handle selecting a reaction (e.g., 'like', 'love', 'haha', etc.)
   const handleLike = async (reactionType: string = 'like') => {
     setShowReactionPicker(false);
     await toggleLikePost(post.id, reactionType);
@@ -80,7 +78,6 @@ const PostCardComponent: React.FC<PostCardProps> = ({ post, currentUserId, onUpd
     ]);
   };
 
-  // Helper mapping for database reaction codes to Emojis
   const getReactionIcon = (type: string) => {
     switch (type?.toLowerCase()) {
       case 'love': return '❤️';
@@ -89,15 +86,13 @@ const PostCardComponent: React.FC<PostCardProps> = ({ post, currentUserId, onUpd
       case 'wow': return '😮';
       case 'sad': return '😢';
       case 'angry': return '😡';
-      default: return '👍'; // 'like'
+      default: return '👍';
     }
   };
 
-  // Real reaction counts from backend object (e.g., post.reaction_counts = {like: 10, love: 5})
   const reactionCounts = post.reaction_counts || {};
   const totalReactions = Object.values(reactionCounts).reduce((a: any, b: any) => a + b, 0) || post.likes_count || 0;
 
-  // Filtered reactions list based on user selection in modal
   const allReactionsUsers = post.reactions_users || [];
   const filteredReactionsUsers = selectedReactionFilter === 'all' 
     ? allReactionsUsers 
@@ -105,7 +100,6 @@ const PostCardComponent: React.FC<PostCardProps> = ({ post, currentUserId, onUpd
 
   return (
     <View style={styles.card}>
-      {/* Header Section */}
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.userInfo}
@@ -143,10 +137,8 @@ const PostCardComponent: React.FC<PostCardProps> = ({ post, currentUserId, onUpd
         </TouchableOpacity>
       </View>
 
-      {/* Content Text */}
       {post.content ? <Text style={styles.content}>{post.content}</Text> : null}
 
-      {/* Post Image with No-Crop */}
       {post.image_url ? (
         <TouchableOpacity onPress={() => setSelectedMedia(post.image_url)} activeOpacity={0.95}>
           <Image 
@@ -157,7 +149,6 @@ const PostCardComponent: React.FC<PostCardProps> = ({ post, currentUserId, onUpd
         </TouchableOpacity>
       ) : null}
 
-      {/* Reactions Count & Comments Summary bar */}
       {(totalReactions > 0 || post.comments_count > 0) && (
         <View style={styles.countsBar}>
           <TouchableOpacity 
@@ -175,10 +166,8 @@ const PostCardComponent: React.FC<PostCardProps> = ({ post, currentUserId, onUpd
         </View>
       )}
 
-      {/* Actions Bar */}
       <View style={styles.actionsBar}>
         <View style={{ flex: 1, position: 'relative' }}>
-          {/* Floating Facebook Reaction Picker Popup */}
           {showReactionPicker && (
             <View style={styles.reactionPickerPopup}>
               <TouchableOpacity onPress={() => handleLike('like')}><Text style={styles.pickerEmoji}>👍</Text></TouchableOpacity>
@@ -209,10 +198,8 @@ const PostCardComponent: React.FC<PostCardProps> = ({ post, currentUserId, onUpd
         />
       </View>
 
-      {/* Comments Section */}
       {showComments && <CommentSection postId={post.id} visible={showComments} onClose={() => setShowComments(false)} />}
 
-      {/* Reactions List Modal (Real Backend Data) */}
       <Modal visible={showReactionsListModal} animationType="slide" transparent={true}>
         <View style={styles.modalOverlay}>
           <View style={styles.reactionsModalContainer}>
@@ -224,7 +211,6 @@ const PostCardComponent: React.FC<PostCardProps> = ({ post, currentUserId, onUpd
               <View style={{ width: 24 }} />
             </View>
 
-            {/* Dynamic Reaction Tabs based on real data */}
             <View style={styles.reactionTabsRow}>
               <TouchableOpacity 
                 style={[styles.reactionTab, selectedReactionFilter === 'all' && styles.activeReactionTab]}
@@ -248,7 +234,6 @@ const PostCardComponent: React.FC<PostCardProps> = ({ post, currentUserId, onUpd
               ))}
             </View>
 
-            {/* Real Users List */}
             <FlatList
               data={filteredReactionsUsers}
               keyExtractor={(item, index) => item.id || index.toString()}
@@ -266,7 +251,6 @@ const PostCardComponent: React.FC<PostCardProps> = ({ post, currentUserId, onUpd
         </View>
       </Modal>
 
-      {/* Options Modal */}
       <Modal visible={showOptionsModal} transparent animationType="fade">
         <TouchableOpacity
           style={styles.modalOverlay}
@@ -313,7 +297,6 @@ const PostCardComponent: React.FC<PostCardProps> = ({ post, currentUserId, onUpd
         </TouchableOpacity>
       </Modal>
 
-      {/* Edit Post Modal */}
       {isEditing && (
         <EditPostScreen
           post={post}
@@ -325,7 +308,6 @@ const PostCardComponent: React.FC<PostCardProps> = ({ post, currentUserId, onUpd
         />
       )}
 
-      {/* Media Viewer Modal */}
       {selectedMedia && (
         <Modal visible={true} transparent={false}>
           <MediaViewerScreen
