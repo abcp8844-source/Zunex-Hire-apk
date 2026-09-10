@@ -25,8 +25,6 @@ interface PostCardProps {
   navigation?: any;
 }
 
-const { width } = Dimensions.get('window');
-
 const PostCardComponent: React.FC<PostCardProps> = ({ post, currentUserId, onUpdate, navigation }) => {
   const [showComments, setShowComments] = useState(false);
   const [showOptionsModal, setShowOptionsModal] = useState(false);
@@ -34,6 +32,12 @@ const PostCardComponent: React.FC<PostCardProps> = ({ post, currentUserId, onUpd
   const [selectedMedia, setSelectedMedia] = useState<string | null>(null);
 
   const isOwner = post.user_id === currentUserId;
+
+  const handleProfilePress = () => {
+    if (navigation) {
+      navigation.navigate('Profile', { userId: post.user_id });
+    }
+  };
 
   const handleShare = async () => {
     await sharePost(post.id);
@@ -75,7 +79,7 @@ const PostCardComponent: React.FC<PostCardProps> = ({ post, currentUserId, onUpd
         <TouchableOpacity
           style={styles.userInfo}
           activeOpacity={0.7}
-          onPress={() => navigation?.navigate('Profile', { userId: post.user_id })}
+          onPress={handleProfilePress}
         >
           <Image
             source={{
@@ -93,7 +97,7 @@ const PostCardComponent: React.FC<PostCardProps> = ({ post, currentUserId, onUpd
               <Ionicons
                 name={post.audience === 'friends' ? 'people-outline' : 'globe-outline'}
                 size={12}
-                color="#65676b"
+                color="#899197"
               />
             </View>
           </View>
@@ -115,7 +119,7 @@ const PostCardComponent: React.FC<PostCardProps> = ({ post, currentUserId, onUpd
           <Image 
             source={{ uri: post.image_url }} 
             style={styles.image} 
-            resizeMode="contain" 
+            resizeMode="cover" 
           />
         </TouchableOpacity>
       ) : null}
@@ -123,7 +127,10 @@ const PostCardComponent: React.FC<PostCardProps> = ({ post, currentUserId, onUpd
       {(totalReactions > 0 || post.comments_count > 0) && (
         <View style={styles.countsBar}>
           <View style={styles.likesCountGroup}>
-            <Text style={styles.countsText}>{totalReactions} reactions</Text>
+            <View style={styles.miniReactionIcon}>
+              <Ionicons name="thumbs-up" size={10} color="#ffffff" />
+            </View>
+            <Text style={styles.countsText}>{totalReactions}</Text>
           </View>
           <TouchableOpacity onPress={() => setShowComments(!showComments)}>
             <Text style={styles.countsText}>{post.comments_count || 0} comments</Text>
@@ -159,8 +166,9 @@ const PostCardComponent: React.FC<PostCardProps> = ({ post, currentUserId, onUpd
           onPress={() => setShowOptionsModal(false)}
         >
           <View style={styles.optionsContainer}>
+            <View style={styles.modalIndicator} />
             <TouchableOpacity style={styles.optionRow} onPress={handleSave}>
-              <Ionicons name="bookmark-outline" size={22} color="#050505" />
+              <Ionicons name="bookmark-outline" size={22} color="#1877f2" />
               <View>
                 <Text style={styles.optionTitle}>Save Post</Text>
                 <Text style={styles.optionSub}>Add this to your saved items collection</Text>
@@ -176,7 +184,7 @@ const PostCardComponent: React.FC<PostCardProps> = ({ post, currentUserId, onUpd
                     setIsEditing(true);
                   }}
                 >
-                  <Ionicons name="create-outline" size={22} color="#050505" />
+                  <Ionicons name="create-outline" size={22} color="#1877f2" />
                   <Text style={styles.optionTitle}>Edit Post</Text>
                 </TouchableOpacity>
 
@@ -226,16 +234,23 @@ export const PostCard = memo(PostCardComponent);
 const styles = StyleSheet.create({
   card: {
     backgroundColor: '#ffffff',
-    marginVertical: 4,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: '#e4e6eb',
+    marginVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#edf2f7',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+    overflow: 'hidden',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
   },
   userInfo: {
     flexDirection: 'row',
@@ -243,95 +258,120 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 10,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    marginRight: 12,
     backgroundColor: '#e4e6eb',
+    borderWidth: 1.5,
+    borderColor: '#1877f2',
   },
   author: {
-    fontWeight: 'bold',
+    fontWeight: '700',
     fontSize: 15,
-    color: '#050505',
+    color: '#0f172a',
   },
   timeRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+    marginTop: 2,
   },
   time: {
     fontSize: 12,
-    color: '#65676b',
+    color: '#64748b',
+    fontWeight: '500',
   },
   dotSeparator: {
-    color: '#65676b',
+    color: '#94a3b8',
     fontSize: 10,
   },
   optionsButton: {
-    padding: 4,
+    padding: 6,
+    borderRadius: 20,
+    backgroundColor: '#f8fafc',
   },
   content: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
     paddingBottom: 12,
     fontSize: 15,
-    color: '#050505',
-    lineHeight: 20,
+    color: '#1e293b',
+    lineHeight: 22,
   },
   image: {
     width: '100%',
-    height: 320,
-    backgroundColor: '#f0f2f5',
+    height: 340,
+    backgroundColor: '#f1f5f9',
   },
   countsBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f2f5',
+    borderBottomColor: '#f1f5f9',
   },
   likesCountGroup: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
   },
+  miniReactionIcon: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#1877f2',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   countsText: {
     fontSize: 13,
-    color: '#65676b',
+    color: '#64748b',
+    fontWeight: '600',
   },
   actionsBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    borderTopWidth: 1,
-    borderTopColor: '#e4e6eb',
-    paddingHorizontal: 12,
+    paddingHorizontal: 8,
     paddingVertical: 4,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    backgroundColor: 'rgba(15, 23, 42, 0.6)',
     justifyContent: 'flex-end',
   },
   optionsContainer: {
     backgroundColor: '#ffffff',
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    padding: 16,
-    gap: 8,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+    gap: 12,
+  },
+  modalIndicator: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#cbd5e1',
+    alignSelf: 'center',
+    marginBottom: 8,
   },
   optionRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
-    gap: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    backgroundColor: '#f8fafc',
+    gap: 14,
   },
   optionTitle: {
     fontSize: 16,
-    color: '#050505',
-    fontWeight: '500',
+    color: '#0f172a',
+    fontWeight: '600',
   },
   optionSub: {
     fontSize: 12,
-    color: '#65676b',
+    color: '#64748b',
+    marginTop: 2,
   },
 });
