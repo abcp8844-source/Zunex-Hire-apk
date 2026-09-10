@@ -33,14 +33,15 @@ interface ReactionTab {
   count: number;
 }
 
-const REACTION_EMOJIS: Record<string, string> = {
-  like: '👍',
-  love: '❤️',
-  care: '🥰',
-  haha: '😆',
-  wow: '😮',
-  sad: '😢',
-  angry: '😡',
+// وہی فیس بک والے اورجنل PNG آئکنز جو آپ کی لائیک سکرین میں ہیں
+const FB_REACTIONS: Record<string, { label: string; icon: string }> = {
+  like: { label: 'Like', icon: 'https://raw.githubusercontent.com/facebook/react-native/main/packages/rn-tester/js/assets/like.png' },
+  love: { label: 'Love', icon: 'https://images.rawpixel.com/image_png_800/2022/10/rm378-02a.png' },
+  care: { label: 'Care', icon: 'https://images.rawpixel.com/image_png_800/2022/10/rm378-02e.png' },
+  haha: { label: 'Haha', icon: 'https://images.rawpixel.com/image_png_800/2022/10/rm378-02b.png' },
+  wow: { label: 'Wow', icon: 'https://images.rawpixel.com/image_png_800/2022/10/rm378-02c.png' },
+  sad: { label: 'Sad', icon: 'https://images.rawpixel.com/image_png_800/2022/10/rm378-02d.png' },
+  angry: { label: 'Angry', icon: 'https://images.rawpixel.com/image_png_800/2022/10/rm378-02f.png' },
 };
 
 export const ReactionsModal: React.FC<ReactionsModalProps> = ({
@@ -69,11 +70,12 @@ export const ReactionsModal: React.FC<ReactionsModalProps> = ({
       });
 
       if (!error && data) {
+        // ڈیٹا بیس سے جو ٹاپ ری ایکشنز آئیں گے (جس کی تعداد زیادہ ہوگی وہ اوپر آئے گا)
         const dynamicTabs: ReactionTab[] = [
           { type: 'all', label: `All ${totalReactions}`, count: totalReactions },
           ...data.map((item: any) => ({
             type: item.reaction_type,
-            label: `${REACTION_EMOJIS[item.reaction_type] || '👍'} ${item.reaction_count}`,
+            label: `${item.reaction_count}`,
             count: item.reaction_count,
           })),
         ];
@@ -134,11 +136,15 @@ export const ReactionsModal: React.FC<ReactionsModalProps> = ({
             contentContainerStyle={styles.tabListContent}
             renderItem={({ item }) => {
               const isActive = activeTab === item.type;
+              const reactionInfo = FB_REACTIONS[item.type];
               return (
                 <TouchableOpacity
                   style={[styles.tabButton, isActive && styles.activeTabButton]}
                   onPress={() => handleTabChange(item.type)}
                 >
+                  {reactionInfo && (
+                    <Image source={{ uri: reactionInfo.icon }} style={styles.tabIcon} />
+                  )}
                   <Text style={[styles.tabText, isActive && styles.activeTabText]}>
                     {item.label}
                   </Text>
@@ -156,28 +162,31 @@ export const ReactionsModal: React.FC<ReactionsModalProps> = ({
           <FlatList
             data={users}
             keyExtractor={(item) => item.user_id}
-            renderItem={({ item }) => (
-              <TouchableOpacity
-                style={styles.userRow}
-                onPress={() => handleUserPress(item.user_id)}
-                activeOpacity={0.7}
-              >
-                <View style={styles.avatarWrapper}>
-                  <Image
-                    source={{
-                      uri: item.avatar_url || 'https://via.placeholder.com/150',
-                    }}
-                    style={styles.avatar}
-                  />
-                  <Text style={styles.badgeEmoji}>
-                    {REACTION_EMOJIS[item.reaction_type] || '👍'}
+            renderItem={({ item }) => {
+              const userReactionInfo = FB_REACTIONS[item.reaction_type];
+              return (
+                <TouchableOpacity
+                  style={styles.userRow}
+                  onPress={() => handleUserPress(item.user_id)}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.avatarWrapper}>
+                    <Image
+                      source={{
+                        uri: item.avatar_url || 'https://via.placeholder.com/150',
+                      }}
+                      style={styles.avatar}
+                    />
+                    {userReactionInfo && (
+                      <Image source={{ uri: userReactionInfo.icon }} style={styles.badgeIcon} />
+                    )}
+                  </View>
+                  <Text style={styles.userName} numberOfLines={1}>
+                    {item.full_name}
                   </Text>
-                </View>
-                <Text style={styles.userName} numberOfLines={1}>
-                  {item.full_name}
-                </Text>
-              </TouchableOpacity>
-            )}
+                </TouchableOpacity>
+              );
+            }}
             contentContainerStyle={styles.listContent}
           />
         )}
@@ -219,13 +228,21 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   tabButton: {
-    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
     backgroundColor: '#f0f2f5',
+    gap: 6,
   },
   activeTabButton: {
     backgroundColor: '#e7f3ff',
+  },
+  tabIcon: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
   },
   tabText: {
     fontSize: 14,
@@ -259,11 +276,15 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     backgroundColor: '#e4e6eb',
   },
-  badgeEmoji: {
+  badgeIcon: {
     position: 'absolute',
     bottom: -2,
     right: -2,
-    fontSize: 16,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: '#ffffff',
   },
   userName: {
     fontSize: 16,
