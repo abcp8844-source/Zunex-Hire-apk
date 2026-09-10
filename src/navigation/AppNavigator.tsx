@@ -31,6 +31,9 @@ import { BlockedUsersScreen } from '../screens/menu/BlockedUsersScreen';
 import { HelpSupportScreen } from '../screens/menu/HelpSupportScreen';
 import { GlobalSearchScreen } from '../screens/interactions/GlobalSearchScreen';
 
+import { MediaViewerScreen } from '../screens/feed/MediaViewerScreen';
+import { EditPostScreen } from '../screens/feed/EditPostScreen';
+
 const Stack = createNativeStackNavigator();
 
 interface AppNavigatorProps {
@@ -68,6 +71,9 @@ export const AppNavigator: React.FC<AppNavigatorProps> = ({ session }) => {
             <Stack.Screen name="BlockedUsers" component={BlockedUsersScreen} />
             <Stack.Screen name="HelpSupport" component={HelpSupportScreen} />
             <Stack.Screen name="GlobalSearch" component={GlobalSearchScreen} />
+
+            <Stack.Screen name="MediaViewer" component={MediaViewerScreen} />
+            <Stack.Screen name="EditPost" component={EditPostScreen} />
           </>
         ) : (
           <>
