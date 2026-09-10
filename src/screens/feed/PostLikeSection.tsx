@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { LikeButton } from '../../components/LikeButton';
+import { View, Text, TouchableOpacity, StyleSheet, Modal, TouchableWithoutFeedback } from 'react-native';
 import { supabase } from '../../services/postService';
 
 interface PostLikeSectionProps {
@@ -10,6 +9,16 @@ interface PostLikeSectionProps {
   userReaction?: string;
   onUpdate?: () => void;
 }
+
+const EMOJI_MAP: { [key: string]: { emoji: string; label: string } } = {
+  like: { emoji: '👍', label: 'Like' },
+  love: { emoji: '❤️', label: 'Love' },
+  care: { emoji: '🥰', label: 'Care' },
+  haha: { emoji: '😆', label: 'Haha' },
+  wow: { emoji: '😮', label: 'Wow' },
+  sad: { emoji: '😢', label: 'Sad' },
+  angry: { emoji: '😡', label: 'Angry' },
+};
 
 export const PostLikeSection: React.FC<PostLikeSectionProps> = ({
   postId,
@@ -23,30 +32,41 @@ export const PostLikeSection: React.FC<PostLikeSectionProps> = ({
   const [localTotalReactions, setLocalTotalReactions] = useState<number>(
     Math.max(0, Number(totalReactions) || 0)
   );
-  const [localUserReaction, setLocalUserReaction] = useState<string | undefined>(userReaction);
+  const [localUserReaction, setLocalUserReaction] = useState<string | undefined>(
+    userReaction || (isLiked ? 'like' : undefined)
+  );
 
   const debounceTimer = useRef<NodeJS.Timeout | null>(null);
-  const pendingStateRef = useRef<{ isLiked: boolean; reactionType: string }>({
+
+  const initialStateRef = useRef<{ isLiked: boolean; reactionType: string | undefined }>({
     isLiked: Boolean(isLiked),
-    reactionType: userReaction || 'like',
+    reactionType: userReaction || (isLiked ? 'like' : undefined),
   });
 
   useEffect(() => {
     setLocalIsLiked(Boolean(isLiked));
     setLocalTotalReactions(Math.max(0, Number(totalReactions) || 0));
-    setLocalUserReaction(userReaction);
-    pendingStateRef.current = {
+    setLocalUserReaction(userReaction || (isLiked ? 'like' : undefined));
+    initialStateRef.current = {
       isLiked: Boolean(isLiked),
-      reactionType: userReaction || 'like',
+      reactionType: userReaction || (isLiked ? 'like' : undefined),
     };
   }, [isLiked, totalReactions, userReaction]);
 
-  const syncWithDatabase = async (finalIsLiked: boolean, reactionType: string) => {
+  useEffect(() => {
+    return () => {
+      if (debounceTimer.current) {
+        clearTimeout(debounceTimer.current);
+      }
+    };
+  }, []);
+
+  const syncWithDatabase = async (finalIsLiked: boolean, reactionType: string | undefined) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      if (finalIsLiked) {
+      if (finalIsLiked && reactionType) {
         await supabase
           .from('post_reactions')
           .upsert(
@@ -63,10 +83,6 @@ export const PostLikeSection: React.FC<PostLikeSectionProps> = ({
           .delete()
           .eq('post_id', postId)
           .eq('user_id', user.id);
-      }
-
-      if (onUpdate) {
-        onUpdate();
       }
     } catch (error) {
       // Silent error handler
@@ -91,84 +107,116 @@ export const PostLikeSection: React.FC<PostLikeSectionProps> = ({
     setLocalTotalReactions(nextCount);
     setLocalUserReaction(nextReaction);
 
-    pendingStateRef.current = {
-      isLiked: nextIsLiked,
-      reactionType: selectedReaction,
-    };
+    if (onUpdate) {
+      onUpdate();
+    }
 
     if (debounceTimer.current) {
       clearTimeout(debounceTimer.current);
     }
 
     debounceTimer.current = setTimeout(() => {
-      syncWithDatabase(
-        pendingStateRef.current.isLiked,
-        pendingStateRef.current.reactionType
-      );
+      const initial = initialStateRef.current;
+      if (initial.isLiked === nextIsLiked && initial.reactionType === nextReaction) {
+        return;
+      }
+
+      syncWithDatabase(nextIsLiked, nextReaction);
+      initialStateRef.current = { isLiked: nextIsLiked, reactionType: nextReaction };
     }, 6000);
   };
+
+  const currentEmojiObj = localUserReaction ? EMOJI_MAP[localUserReaction] : null;
 
   return (
     <View style={styles.container}>
       {showReactionPicker && (
-        <View style={styles.reactionPickerPopup}>
-          <TouchableOpacity onPress={() => handleLikeToggle('like')}>
-            <Text style={styles.pickerEmoji}>👍</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => handleLikeToggle('love')}>
-            <Text style={styles.pickerEmoji}>❤️</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => handleLikeToggle('care')}>
-            <Text style={styles.pickerEmoji}>🥰</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => handleLikeToggle('haha')}>
-            <Text style={styles.pickerEmoji}>😆</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => handleLikeToggle('wow')}>
-            <Text style={styles.pickerEmoji}>😮</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => handleLikeToggle('sad')}>
-            <Text style={styles.pickerEmoji}>😢</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => handleLikeToggle('angry')}>
-            <Text style={styles.pickerEmoji}>😡</Text>
-          </TouchableOpacity>
-        </View>
+        <Modal transparent animationType="fade" visible={showReactionPicker}>
+          <TouchableWithoutFeedback onPress={() => setShowReactionPicker(false)}>
+            <View style={styles.modalOverlay}>
+              <View style={styles.reactionPickerPopup}>
+                {Object.keys(EMOJI_MAP).map((key) => (
+                  <TouchableOpacity
+                    key={key}
+                    onPress={() => handleLikeToggle(key)}
+                    activeOpacity={0.7}
+                    style={styles.emojiItem}
+                  >
+                    <Text style={styles.pickerEmoji}>{EMOJI_MAP[key].emoji}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          </TouchableWithoutFeedback>
+        </Modal>
       )}
 
-      <LikeButton
-        isLiked={localIsLiked}
-        likeCount={localTotalReactions}
+      <TouchableOpacity
+        style={styles.actionButton}
         onPress={() => handleLikeToggle(localUserReaction || 'like')}
         onLongPress={() => setShowReactionPicker(true)}
-      />
+        delayLongPress={200}
+        activeOpacity={0.7}
+      >
+        {localIsLiked && currentEmojiObj ? (
+          <Text style={styles.selectedEmoji}>{currentEmojiObj.emoji}</Text>
+        ) : (
+          <Text style={styles.defaultThumb}>👍</Text>
+        )}
+        <Text style={styles.actionCountText}>{localTotalReactions}</Text>
+      </TouchableOpacity>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 6,
+  },
+  defaultThumb: {
+    fontSize: 20,
+  },
+  selectedEmoji: {
+    fontSize: 20,
+  },
+  actionCountText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#65676b',
+  },
+  modalOverlay: {
     flex: 1,
-    position: 'relative',
+    backgroundColor: 'rgba(0, 0, 0, 0.08)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   reactionPickerPopup: {
-    position: 'absolute',
-    bottom: 45,
-    left: 0,
     backgroundColor: '#ffffff',
-    borderRadius: 30,
+    borderRadius: 35,
     flexDirection: 'row',
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    gap: 8,
-    elevation: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    gap: 12,
+    elevation: 10,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    zIndex: 100,
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    borderWidth: 1,
+    borderColor: '#f1f5f9',
+  },
+  emojiItem: {
+    padding: 2,
   },
   pickerEmoji: {
-    fontSize: 24,
+    fontSize: 28,
   },
 });
