@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { LikeButton } from '../../components/LikeButton';
 import { toggleLikePost } from '../../services/postService';
@@ -19,11 +19,42 @@ export const PostLikeSection: React.FC<PostLikeSectionProps> = ({
   onUpdate,
 }) => {
   const [showReactionPicker, setShowReactionPicker] = useState(false);
+  const [localIsLiked, setLocalIsLiked] = useState(isLiked);
+  const [localTotalReactions, setLocalTotalReactions] = useState(totalReactions);
+  const [localUserReaction, setLocalUserReaction] = useState(userReaction);
+
+  useEffect(() => {
+    setLocalIsLiked(isLiked);
+    setLocalTotalReactions(totalReactions);
+    setLocalUserReaction(userReaction);
+  }, [isLiked, totalReactions, userReaction]);
 
   const handleLike = async (reactionType: string = 'like') => {
     setShowReactionPicker(false);
-    await toggleLikePost(postId, reactionType);
-    onUpdate();
+
+    const prevIsLiked = localIsLiked;
+    const prevTotal = localTotalReactions;
+    const prevReaction = localUserReaction;
+
+    if (localIsLiked && localUserReaction === reactionType) {
+      setLocalIsLiked(false);
+      setLocalTotalReactions(Math.max(0, localTotalReactions - 1));
+      setLocalUserReaction(undefined);
+    } else {
+      const isNew = !localIsLiked;
+      setLocalIsLiked(true);
+      setLocalTotalReactions(isNew ? localTotalReactions + 1 : localTotalReactions);
+      setLocalUserReaction(reactionType);
+    }
+
+    try {
+      await toggleLikePost(postId, reactionType);
+      onUpdate();
+    } catch (error) {
+      setLocalIsLiked(prevIsLiked);
+      setLocalTotalReactions(prevTotal);
+      setLocalUserReaction(prevReaction);
+    }
   };
 
   return (
@@ -41,9 +72,9 @@ export const PostLikeSection: React.FC<PostLikeSectionProps> = ({
       )}
 
       <LikeButton
-        isLiked={isLiked}
-        likeCount={totalReactions}
-        onPress={() => handleLike(userReaction || 'like')}
+        isLiked={localIsLiked}
+        likeCount={localTotalReactions}
+        onPress={() => handleLike(localUserReaction || 'like')}
         onLongPress={() => setShowReactionPicker(true)}
       />
     </View>
