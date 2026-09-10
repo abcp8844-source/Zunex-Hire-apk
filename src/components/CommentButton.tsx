@@ -8,11 +8,26 @@ interface CommentButtonProps {
   onPress: () => void;
 }
 
+const formatNumber = (num: number): string => {
+  if (!num || num === 0) return '';
+  if (num >= 1000000) {
+    return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+  }
+  if (num >= 1000) {
+    return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+  }
+  return num.toString();
+};
+
 export const CommentButton: React.FC<CommentButtonProps> = ({ commentCount, onPress }) => {
+  const formattedCount = formatNumber(commentCount);
+
   return (
     <TouchableOpacity style={styles.button} onPress={onPress} activeOpacity={0.7}>
       <Ionicons name="chatbubble-outline" size={20} color={theme.colors.textSecondary} style={styles.icon} />
-      <Text style={styles.text}>Comment {commentCount > 0 ? `(${commentCount})` : ''}</Text>
+      <Text style={styles.text}>
+        {formattedCount ? `Comment ${formattedCount}` : 'Comment'}
+      </Text>
     </TouchableOpacity>
   );
 };
