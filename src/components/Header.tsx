@@ -33,12 +33,12 @@ export const Header: React.FC<HeaderProps> = ({ onSearchPress, onMenuPress }) =>
         <View style={styles.actionGroup}>
           {onSearchPress && (
             <TouchableOpacity style={styles.iconButton} onPress={onSearchPress} activeOpacity={0.8}>
-              <Ionicons name="search-outline" size={20} color="#003399" />
+              <Ionicons name="search-outline" size={20} color="#002266" />
             </TouchableOpacity>
           )}
           {onMenuPress && (
             <TouchableOpacity style={styles.iconButton} onPress={onMenuPress} activeOpacity={0.8}>
-              <Ionicons name="menu-outline" size={22} color="#003399" />
+              <Ionicons name="menu-outline" size={22} color="#002266" />
             </TouchableOpacity>
           )}
         </View>
@@ -52,7 +52,7 @@ const styles = StyleSheet.create({
     width: '100%',
     backgroundColor: '#ffffff',
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0, 51, 153, 0.08)',
+    borderBottomColor: 'rgba(0, 34, 102, 0.08)',
     elevation: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -65,7 +65,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
+    paddingHorizontal: 20, // Increased horizontal padding to push items nicely to edges
     width: '100%',
     backgroundColor: '#ffffff',
   },
@@ -74,13 +74,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   planeBox: {
-    width: 44,
-    height: 44,
+    width: 42,
+    height: 42,
     borderRadius: 12,
-    backgroundColor: '#003399',
+    backgroundColor: '#002266', // 10% Darker & richer Navy Blue
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginRight: 10,
     transform: [{ rotate: '6deg' }],
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
@@ -96,7 +96,7 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     fontStyle: 'italic',
     textTransform: 'uppercase',
-    color: '#003399',
+    color: '#002266', // Matching darker brand color
     letterSpacing: -1,
   },
   brandAccent: {
@@ -113,7 +113,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f3f4f6',
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: 8,
+    marginLeft: 10,
     borderWidth: 1,
     borderColor: '#e5e7eb',
   },
