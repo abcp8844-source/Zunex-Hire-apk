@@ -1,0 +1,31 @@
+name: Zunexhire Database Inspector & Self-Healing Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  inspect-and-fix-db:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install Dependencies
+        run: |
+          npm install pg dotenv ts-node typescript
+
+      - name: Run Schema Inspection & Repair Engine
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          npx ts-node scripts/inspect-and-fix.ts
