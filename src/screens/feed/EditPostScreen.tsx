@@ -30,6 +30,7 @@ export const EditPostScreen: React.FC<EditPostScreenProps> = ({
   const [loading, setLoading] = useState(false);
 
   const handleUpdate = async () => {
+    if (loading) return;
     setLoading(true);
     try {
       await updatePost(post.id, content, audience);
@@ -51,11 +52,11 @@ export const EditPostScreen: React.FC<EditPostScreenProps> = ({
     <Modal animationType="slide" transparent={false} visible={true}>
       <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={onClose}>
+          <TouchableOpacity onPress={onClose} activeOpacity={0.7}>
             <Ionicons name="close" size={26} color="#050505" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Edit Post</Text>
-          <TouchableOpacity onPress={handleUpdate} disabled={loading}>
+          <TouchableOpacity onPress={handleUpdate} disabled={loading} activeOpacity={0.7}>
             {loading ? (
               <ActivityIndicator size="small" color="#1877f2" />
             ) : (
@@ -68,17 +69,18 @@ export const EditPostScreen: React.FC<EditPostScreenProps> = ({
           <View style={styles.userInfoRow}>
             <Image
               source={{
-                uri: post?.user?.avatar_url || 'https://via.placeholder.com/150',
+                uri: post?.profiles?.avatar_url || post?.user?.avatar_url || 'https://via.placeholder.com/150',
               }}
               style={styles.userAvatar}
             />
             <View>
               <Text style={styles.userName}>
-                {post?.user?.full_name || 'User'}
+                {post?.profiles?.full_name || post?.user?.full_name || 'User'}
               </Text>
               <TouchableOpacity
                 style={styles.audienceSelector}
                 onPress={toggleAudience}
+                activeOpacity={0.7}
               >
                 <Ionicons
                   name={
@@ -106,13 +108,13 @@ export const EditPostScreen: React.FC<EditPostScreenProps> = ({
             placeholderTextColor="#65676b"
           />
 
-          {post?.image_url && (
+          {post?.image_url ? (
             <Image
               source={{ uri: post.image_url }}
               style={styles.postImagePreview}
-              resizeMode="cover"
+              resizeMode="contain"
             />
-          )}
+          ) : null}
         </View>
       </View>
     </Modal>
@@ -158,6 +160,7 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     marginRight: 10,
+    backgroundColor: '#e4e6eb',
   },
   userName: {
     fontSize: 16,
@@ -188,8 +191,9 @@ const styles = StyleSheet.create({
   },
   postImagePreview: {
     width: '100%',
-    height: 200,
+    height: 220,
     borderRadius: 8,
     marginTop: 12,
+    backgroundColor: '#f0f2f5',
   },
 });
