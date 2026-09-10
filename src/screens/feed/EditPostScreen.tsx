@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { updatePost } from '../../services/postService';
+import { PostImageEditor } from './PostImageEditor';
 
 interface EditPostScreenProps {
   post: any;
@@ -27,13 +28,14 @@ export const EditPostScreen: React.FC<EditPostScreenProps> = ({
   const [audience, setAudience] = useState<'public' | 'friends' | 'private'>(
     post?.audience || 'public'
   );
+  const [imageUrl, setImageUrl] = useState(post?.image_url || '');
   const [loading, setLoading] = useState(false);
 
   const handleUpdate = async () => {
     if (loading) return;
     setLoading(true);
     try {
-      await updatePost(post.id, content, audience);
+      await updatePost(post.id, content, audience, imageUrl);
       setLoading(false);
       onUpdated();
     } catch (error) {
@@ -46,6 +48,14 @@ export const EditPostScreen: React.FC<EditPostScreenProps> = ({
     if (audience === 'public') setAudience('friends');
     else if (audience === 'friends') setAudience('private');
     else setAudience('public');
+  };
+
+  const handleImagePicked = (uri: string) => {
+    setImageUrl(uri);
+  };
+
+  const handleImageDeleted = () => {
+    setImageUrl('');
   };
 
   return (
@@ -108,13 +118,11 @@ export const EditPostScreen: React.FC<EditPostScreenProps> = ({
             placeholderTextColor="#65676b"
           />
 
-          {post?.image_url ? (
-            <Image
-              source={{ uri: post.image_url }}
-              style={styles.postImagePreview}
-              resizeMode="contain"
-            />
-          ) : null}
+          <PostImageEditor
+            imageUrl={imageUrl}
+            onImagePicked={handleImagePicked}
+            onImageDeleted={handleImageDeleted}
+          />
         </View>
       </View>
     </Modal>
@@ -188,12 +196,5 @@ const styles = StyleSheet.create({
     color: '#050505',
     minHeight: 100,
     textAlignVertical: 'top',
-  },
-  postImagePreview: {
-    width: '100%',
-    height: 220,
-    borderRadius: 8,
-    marginTop: 12,
-    backgroundColor: '#f0f2f5',
   },
 });
