@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   RefreshControl,
   Image,
+  SafeAreaView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
@@ -86,6 +87,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation, route 
 
   const renderProfileHeader = () => (
     <View style={styles.headerContainer}>
+      {/* Cover Photo */}
       <View style={styles.coverContainer}>
         {profile?.cover_url ? (
           <Image source={{ uri: profile.cover_url }} style={styles.coverImage} />
@@ -97,20 +99,22 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation, route 
       </View>
 
       <View style={styles.profileHeaderContent}>
+        {/* Avatar */}
         <View style={styles.avatarWrapper}>
           {profile?.avatar_url ? (
             <Image source={{ uri: profile.avatar_url }} style={styles.avatar} />
           ) : (
             <View style={styles.defaultAvatarPlaceholder}>
-              <Ionicons name="person" size={50} color="#1c2b33" />
+              <Ionicons name="person" size={40} color="#1c2b33" />
             </View>
           )}
         </View>
 
+        {/* Name & Verification */}
         <View style={styles.nameBadgeRow}>
-          <Text style={styles.userName}>{profile?.full_name || 'Zunexhire User'}</Text>
+          <Text style={styles.userName}>{profile?.full_name || 'User Profile'}</Text>
           {profile?.is_verified && (
-            <Ionicons name="checkmark-circle" size={20} color="#1877f2" style={styles.badgeIcon} />
+            <Ionicons name="checkmark-circle" size={18} color="#1877f2" style={styles.badgeIcon} />
           )}
         </View>
 
@@ -118,25 +122,20 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation, route 
           {profile?.posts_count || posts.length} posts
         </Text>
 
+        {/* Action Buttons */}
         <View style={styles.actionButtonsRow}>
           <TouchableOpacity
             style={styles.primaryBtn}
             onPress={() => navigation.navigate('CreatePost')}
             activeOpacity={0.8}
           >
-            <Ionicons name="add-circle" size={18} color="#ffffff" style={styles.btnIcon} />
+            <Ionicons name="add-circle-outline" size={18} color="#ffffff" style={styles.btnIcon} />
             <Text style={styles.primaryBtnText}>Add post</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.secondaryBtn}
-            onPress={() =>
-              navigation.navigate('EditProfile', {
-                currentName: profile?.full_name,
-                currentBio: profile?.bio,
-                currentAvatar: profile?.avatar_url,
-              })
-            }
+            onPress={() => navigation.navigate('EditProfile')}
             activeOpacity={0.8}
           >
             <Ionicons name="create-outline" size={18} color="#050505" style={styles.btnIcon} />
@@ -144,73 +143,37 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation, route 
           </TouchableOpacity>
         </View>
 
-        <View style={styles.filterTabsRow}>
-          <TouchableOpacity style={[styles.filterTab, styles.filterTabActive]}>
-            <Text style={styles.filterTabActiveText}>All</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.filterTab}
-            onPress={() => navigation.navigate('ProfilePhotos', { userId })}
-          >
-            <Text style={styles.filterTabText}>Photos</Text>
-          </TouchableOpacity>
-        </View>
+        {/* Clean Info Section (Bio & Website only) */}
+        {(profile?.bio || profile?.website || profile?.current_city) && (
+          <View style={styles.infoCard}>
+            {profile?.bio && (
+              <View style={styles.infoRow}>
+                <Ionicons name="information-circle-outline" size={18} color="#65676b" style={styles.infoIcon} />
+                <Text style={styles.infoText} numberOfLines={2}>{profile.bio}</Text>
+              </View>
+            )}
+            {profile?.current_city && (
+              <View style={styles.infoRow}>
+                <Ionicons name="location-outline" size={18} color="#65676b" style={styles.infoIcon} />
+                <Text style={styles.infoText}>Lives in {profile.current_city}</Text>
+              </View>
+            )}
+            {profile?.website && (
+              <View style={styles.infoRow}>
+                <Ionicons name="link-outline" size={18} color="#65676b" style={styles.infoIcon} />
+                <Text style={styles.linkText} numberOfLines={1}>{profile.website}</Text>
+              </View>
+            )}
+          </View>
+        )}
 
-        <View style={styles.infoSection}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Personal details</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('PersonalDetails')}>
-              <Ionicons name="pencil-outline" size={18} color="#65676b" />
-            </TouchableOpacity>
-          </View>
-          <View style={styles.infoRow}>
-            <Ionicons name="cake-outline" size={20} color="#050505" style={styles.infoIcon} />
-            <Text style={styles.infoText}>
-              {profile?.dob || 'Not specified'}
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.infoSection}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Interests</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('PersonalDetails')}>
-              <Ionicons name="pencil-outline" size={18} color="#65676b" />
-            </TouchableOpacity>
-          </View>
-          <Text style={styles.subCategoryTitle}>Sports teams and athletes</Text>
-          <View style={styles.linkRow}>
-            <Ionicons name="shirt-outline" size={18} color="#65676b" style={styles.infoIcon} />
-            <Text style={styles.linkText}>{profile?.sports_link || 'zunexhire.com'}</Text>
-          </View>
-        </View>
-
-        <View style={styles.infoSection}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Links</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('PersonalDetails')}>
-              <Ionicons name="pencil-outline" size={18} color="#65676b" />
-            </TouchableOpacity>
-          </View>
-          <View style={styles.linkRow}>
-            <Ionicons name="link-outline" size={18} color="#65676b" style={styles.infoIcon} />
-            <Text style={styles.linkText}>{profile?.website || 'zunexhire.com'}</Text>
-          </View>
-        </View>
-
-        <View style={styles.friendsHeaderRow}>
-          <Text style={styles.sectionTitle}>Friends</Text>
-          <TouchableOpacity onPress={() => navigation.navigate('FriendsList', { userId })}>
-            <Text style={styles.seeAllText}>See all</Text>
-          </TouchableOpacity>
-        </View>
-
+        {/* Create Post Shortcut Box */}
         <View style={styles.createPostBox}>
           {profile?.avatar_url ? (
             <Image source={{ uri: profile.avatar_url }} style={styles.smallAvatar} />
           ) : (
             <View style={styles.defaultSmallAvatarPlaceholder}>
-              <Ionicons name="person" size={20} color="#1c2b33" />
+              <Ionicons name="person" size={18} color="#1c2b33" />
             </View>
           )}
           <TouchableOpacity
@@ -220,7 +183,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation, route 
             <Text style={styles.placeholderText}>What's on your mind?</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => navigation.navigate('CreatePost')}>
-            <Ionicons name="images-outline" size={24} color="#45bd62" />
+            <Ionicons name="images-outline" size={22} color="#45bd62" />
           </TouchableOpacity>
         </View>
       </View>
@@ -229,55 +192,63 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation, route 
 
   if (loading) {
     return (
-      <View style={styles.container}>
-        <Header
-          title="Profile"
-          onSearchPress={() => navigation.navigate('GlobalSearch')}
-          onMenuPress={() => navigation.navigate('Menu')}
-        />
-        <View style={styles.loaderContainer}>
-          <Loader />
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.container}>
+          <Header
+            title="Profile"
+            onSearchPress={() => navigation.navigate('GlobalSearch')}
+            onMenuPress={() => navigation.navigate('Menu')}
+          />
+          <View style={styles.loaderContainer}>
+            <Loader />
+          </View>
         </View>
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <Header
-        title={profile?.full_name || 'Profile'}
-        onSearchPress={() => navigation.navigate('GlobalSearch')}
-        onMenuPress={() => navigation.navigate('Menu')}
-      />
-      <FlatList
-        data={posts}
-        keyExtractor={(item) => item.id.toString()}
-        ListHeaderComponent={renderProfileHeader()}
-        renderItem={({ item }) => <PostCard post={item} onUpdate={loadProfileData} />}
-        onEndReached={handleLoadMore}
-        onEndReachedThreshold={0.5}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={['#1877f2']} />
-        }
-        ListFooterComponent={
-          loadingMore ? (
-            <View style={styles.footerLoader}>
-              <ActivityIndicator size="small" color="#1877f2" />
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.container}>
+        <Header
+          title={profile?.full_name || 'Profile'}
+          onSearchPress={() => navigation.navigate('GlobalSearch')}
+          onMenuPress={() => navigation.navigate('Menu')}
+        />
+        <FlatList
+          data={posts}
+          keyExtractor={(item) => item.id.toString()}
+          ListHeaderComponent={renderProfileHeader()}
+          renderItem={({ item }) => <PostCard post={item} onUpdate={loadProfileData} />}
+          onEndReached={handleLoadMore}
+          onEndReachedThreshold={0.5}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={['#1877f2']} />
+          }
+          ListFooterComponent={
+            loadingMore ? (
+              <View style={styles.footerLoader}>
+                <ActivityIndicator size="small" color="#1877f2" />
+              </View>
+            ) : null
+          }
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Ionicons name="document-text-outline" size={42} color="#ccd0d5" />
+              <Text style={styles.emptyText}>No posts shared yet.</Text>
             </View>
-          ) : null
-        }
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Ionicons name="document-text-outline" size={48} color="#ccc" />
-            <Text style={styles.emptyText}>No posts shared yet.</Text>
-          </View>
-        }
-      />
-    </View>
+          }
+        />
+      </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+  },
   container: {
     flex: 1,
     backgroundColor: '#f0f2f5',
@@ -290,9 +261,11 @@ const styles = StyleSheet.create({
   headerContainer: {
     backgroundColor: '#ffffff',
     marginBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e4e6eb',
   },
   coverContainer: {
-    height: 180,
+    height: 150,
     width: '100%',
     backgroundColor: '#e4e6eb',
   },
@@ -309,23 +282,23 @@ const styles = StyleSheet.create({
   },
   profileHeaderContent: {
     paddingHorizontal: 16,
-    paddingBottom: 12,
+    paddingBottom: 16,
   },
   avatarWrapper: {
-    marginTop: -50,
+    marginTop: -40,
     alignSelf: 'flex-start',
-    borderRadius: 60,
-    borderWidth: 4,
+    borderRadius: 44,
+    borderWidth: 3,
     borderColor: '#ffffff',
     backgroundColor: '#ffffff',
-    width: 100,
-    height: 100,
+    width: 88,
+    height: 88,
     overflow: 'hidden',
+    elevation: 3,
   },
   avatar: {
     width: '100%',
     height: '100%',
-    borderRadius: 50,
   },
   defaultAvatarPlaceholder: {
     width: '100%',
@@ -333,7 +306,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#e4e6eb',
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 50,
   },
   nameBadgeRow: {
     flexDirection: 'row',
@@ -341,7 +313,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   userName: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#050505',
   },
@@ -349,9 +321,9 @@ const styles = StyleSheet.create({
     marginLeft: 6,
   },
   postCountText: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#65676b',
-    marginTop: 2,
+    marginTop: 1,
     marginBottom: 12,
   },
   actionButtonsRow: {
@@ -363,7 +335,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#1877f2',
     height: 38,
-    borderRadius: 6,
+    borderRadius: 8,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
@@ -378,7 +350,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#e4e6eb',
     height: 38,
-    borderRadius: 6,
+    borderRadius: 8,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
@@ -392,51 +364,16 @@ const styles = StyleSheet.create({
   btnIcon: {
     marginRight: 6,
   },
-  filterTabsRow: {
-    flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e4e6eb',
-    paddingBottom: 8,
-    marginBottom: 12,
-  },
-  filterTab: {
-    paddingVertical: 6,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    marginRight: 8,
-    backgroundColor: '#e4e6eb',
-  },
-  filterTabActive: {
-    backgroundColor: '#e7f3ff',
-  },
-  filterTabActiveText: {
-    color: '#1877f2',
-    fontWeight: 'bold',
-  },
-  filterTabText: {
-    color: '#050505',
-    fontWeight: '600',
-  },
-  infoSection: {
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#f0f2f5',
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#050505',
+  infoCard: {
+    backgroundColor: '#f7f8fa',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 16,
   },
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginVertical: 4,
   },
   infoIcon: {
     marginRight: 10,
@@ -444,54 +381,31 @@ const styles = StyleSheet.create({
   infoText: {
     fontSize: 14,
     color: '#050505',
-  },
-  subCategoryTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#050505',
-    marginBottom: 4,
-  },
-  linkRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flex: 1,
   },
   linkText: {
     fontSize: 14,
     color: '#1877f2',
-  },
-  friendsHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 16,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#f0f2f5',
-  },
-  seeAllText: {
-    color: '#1877f2',
-    fontSize: 14,
-    fontWeight: '600',
+    flex: 1,
   },
   createPostBox: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#ffffff',
-    paddingVertical: 12,
-    marginTop: 16,
+    paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: '#e4e6eb',
+    borderTopColor: '#f0f2f5',
   },
   smallAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     marginRight: 10,
   },
   defaultSmallAvatarPlaceholder: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: '#e4e6eb',
     justifyContent: 'center',
     alignItems: 'center',
@@ -503,7 +417,7 @@ const styles = StyleSheet.create({
     height: 36,
     borderRadius: 18,
     justifyContent: 'center',
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
     marginRight: 10,
   },
   placeholderText: {
