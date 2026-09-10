@@ -1,91 +1,166 @@
 import os
-import re
-import glob
 from supabase import create_client
 
 url = os.environ.get("SUPABASE_URL")
 key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
 
-if not url:
-    print("ERROR: SUPABASE_URL Missing in Secrets")
-
-if not key:
-    print("ERROR: SUPABASE_SERVICE_ROLE_KEY Missing in Secrets")
-
 if not url or not key:
-    print("Execution Stopped due to missing environment variables.")
-else:
-    try:
-        supabase = create_client(url, key)
+    raise ValueError("SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY missing.")
 
-        SERVICES_DIR = "src/services/"
-        discovered_schema = {}
+supabase = create_client(url, key)
 
-        if os.path.exists(SERVICES_DIR):
-            for filepath in glob.glob(os.path.join(SERVICES_DIR, "**/*.ts"), recursive=True) + glob.glob(os.path.join(SERVICES_DIR, "**/*.js"), recursive=True):
-                with open(filepath, "r", encoding="utf-8") as f:
-                    content = f.read()
+schema_sql = """
+DROP TABLE IF EXISTS public.activity_logs CASCADE;
+DROP TABLE IF EXISTS public.blocked_users CASCADE;
+DROP TABLE IF EXISTS public.reports CASCADE;
+DROP TABLE IF EXISTS public.saved_posts CASCADE;
+DROP TABLE IF EXISTS public.scheduled_posts CASCADE;
+DROP TABLE IF EXISTS public.notifications CASCADE;
+DROP TABLE IF EXISTS public.shares CASCADE;
+DROP TABLE IF EXISTS public.comments CASCADE;
+DROP TABLE IF EXISTS public.likes CASCADE;
+DROP TABLE IF EXISTS public.posts CASCADE;
+DROP TABLE IF EXISTS public.group_members CASCADE;
+DROP TABLE IF EXISTS public.groups CASCADE;
+DROP TABLE IF EXISTS public.friend_requests CASCADE;
+DROP TABLE IF EXISTS public.friends CASCADE;
+DROP TABLE IF EXISTS public.profiles CASCADE;
 
-                tables = re.findall(r"\.from\(['\"]([a-zA-Z0-9_]+)['\"]\)", content)
+CREATE TABLE public.profiles (
+  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  full_name TEXT DEFAULT '',
+  avatar_url TEXT DEFAULT '',
+  bio TEXT DEFAULT '',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
 
-                for table in tables:
-                    if table not in discovered_schema:
-                        discovered_schema[table] = set(["id", "created_at"])
+CREATE TABLE public.groups (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  description TEXT DEFAULT '',
+  privacy TEXT DEFAULT 'public',
+  admin_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+  avatar_url TEXT DEFAULT '',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
 
-                    selects = re.findall(r"\.select\(['\"]([^'\"]+)['\"]\)", content)
-                    for sel in selects:
-                        cols = [c.strip() for c in sel.replace("\n", "").split(",") if c.strip() and not c.strip().startswith("*")]
-                        for col in cols:
-                            clean_col = col.split("(")[0].strip()
-                            if clean_col and "." not in clean_col:
-                                discovered_schema[table].add(clean_col)
+CREATE TABLE public.group_members (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  group_id UUID REFERENCES public.groups(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+  role TEXT DEFAULT 'member',
+  status TEXT DEFAULT 'approved',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
 
-                    payloads = re.findall(r"\.(?:insert|update|upsert)\(\s*[\{\[](.*?)[\}\]]\s*\)", content, re.DOTALL)
-                    for p in payloads:
-                        keys = re.findall(r"([a-zA-Z0-9_]+)\s*:", p)
-                        for k in keys:
-                            discovered_schema[table].add(k)
+CREATE TABLE public.posts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+  group_id UUID REFERENCES public.groups(id) ON DELETE CASCADE,
+  content TEXT DEFAULT '',
+  image_url TEXT,
+  is_approved BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
 
-        if not discovered_schema:
-            discovered_schema = {
-                "profiles": {"id", "username", "full_name", "avatar_url", "cover_url", "bio", "city", "website", "phone", "created_at", "updated_at"},
-                "friends": {"id", "user_id", "friend_id", "status", "created_at"},
-                "groups": {"id", "name", "description", "cover_url", "creator_id", "created_at"},
-                "group_members": {"id", "group_id", "user_id", "role", "status", "joined_at"},
-                "group_admins": {"id", "group_id", "user_id", "created_at"},
-                "posts": {"id", "user_id", "group_id", "content", "image_url", "scheduled_at", "is_approved", "created_at", "updated_at"},
-                "likes": {"id", "post_id", "user_id", "created_at"},
-                "comments": {"id", "post_id", "user_id", "content", "created_at"},
-                "shares": {"id", "post_id", "user_id", "created_at"},
-                "notifications": {"id", "receiver_id", "sender_id", "type", "post_id", "group_id", "is_read", "created_at"}
-            }
+CREATE TABLE public.likes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  post_id UUID REFERENCES public.posts(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
 
-        sql_statements = []
+CREATE TABLE public.comments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  post_id UUID REFERENCES public.posts(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+  content TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
 
-        for table, columns in discovered_schema.items():
-            sql_statements.append(f'CREATE TABLE IF NOT EXISTS public."{table}" (id UUID PRIMARY KEY DEFAULT gen_random_uuid());')
-            
-            for col in columns:
-                if col == "id":
-                    continue
-                col_type = "TEXT DEFAULT ''"
-                if "id" in col:
-                    col_type = "UUID"
-                elif "at" in col:
-                    col_type = "TIMESTAMPTZ DEFAULT NOW()"
-                elif "is_" in col or "has_" in col:
-                    col_type = "BOOLEAN DEFAULT FALSE"
+CREATE TABLE public.shares (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  post_id UUID REFERENCES public.posts(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
 
-                sql_statements.append(f'ALTER TABLE public."{table}" ADD COLUMN IF NOT EXISTS "{col}" {col_type};')
+CREATE TABLE public.saved_posts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+  post_id UUID REFERENCES public.posts(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
 
-            sql_statements.append(f'ALTER TABLE public."{table}" ENABLE ROW LEVEL SECURITY;')
-            sql_statements.append(f'DROP POLICY IF EXISTS "Full Access Policy" ON public."{table}";')
-            sql_statements.append(f'CREATE POLICY "Full Access Policy" ON public."{table}" FOR ALL TO public USING (true) WITH CHECK (true);')
+CREATE TABLE public.reports (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  reporter_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+  post_id UUID REFERENCES public.posts(id) ON DELETE CASCADE,
+  reason TEXT DEFAULT 'Inappropriate content',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
 
-        raw_sql = "\n".join(sql_statements)
+CREATE TABLE public.notifications (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  receiver_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+  sender_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+  type TEXT NOT NULL,
+  content TEXT DEFAULT '',
+  reference_id UUID,
+  is_read BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
 
-        res = supabase.rpc("exec_sql", {"sql": raw_sql}).execute()
-        print("SUCCESS: Database Sync Completed.")
+CREATE TABLE public.friend_requests (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  sender_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+  receiver_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
 
-    except Exception as err:
-        print(f"FAILED ERROR DETAILS: {err}")
+CREATE TABLE public.friends (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+  friend_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE public.scheduled_posts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  group_id UUID REFERENCES public.groups(id) ON DELETE CASCADE,
+  scheduled_for TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE public.activity_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE public.blocked_users (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+  blocked_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+DO $$ 
+DECLARE 
+  tbl text;
+BEGIN
+  FOR tbl IN 
+    SELECT table_name 
+    FROM information_schema.tables 
+    WHERE table_schema = 'public' 
+      AND table_type = 'BASE TABLE'
+  LOOP
+    EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY;', tbl);
+    EXECUTE format('DROP POLICY IF EXISTS "Full Access Policy" ON public.%I;', tbl);
+    EXECUTE format('CREATE POLICY "Full Access Policy" ON public.%I FOR ALL TO public USING (true) WITH CHECK (true);', tbl);
+  END LOOP;
+END $$;
+"""
+
+supabase.rpc("exec_sql", {"sql": schema_sql}).execute()
+print("Pipeline setup complete.")
