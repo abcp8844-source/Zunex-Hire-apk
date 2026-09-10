@@ -1,7 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, StyleSheet, Image, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import {
+  View,
+  Text,
+  FlatList,
+  StyleSheet,
+  Image,
+  TouchableOpacity,
+  Alert,
+  ActivityIndicator,
+  RefreshControl,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
 import { fetchNonFriends, sendFriendRequest } from '../../services/userService';
+import { Loader } from '../../components/Loader';
 import { theme } from '../../theme';
 
 interface FindFriendsScreenProps {
@@ -11,10 +23,10 @@ interface FindFriendsScreenProps {
 export const FindFriendsScreen: React.FC<FindFriendsScreenProps> = ({ navigation }) => {
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [requestingId, setRequestingId] = useState<string | null>(null);
 
   const loadUsers = async () => {
-    setLoading(true);
     try {
       const data = await fetchNonFriends();
       if (data) setUsers(data);
@@ -22,12 +34,18 @@ export const FindFriendsScreen: React.FC<FindFriendsScreenProps> = ({ navigation
       Alert.alert('Error', 'Unable to fetch suggestions. Please check your connection.');
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
   useEffect(() => {
     loadUsers();
   }, []);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadUsers();
+  };
 
   const handleAdd = async (userId: string) => {
     setRequestingId(userId);
@@ -51,22 +69,49 @@ export const FindFriendsScreen: React.FC<FindFriendsScreenProps> = ({ navigation
 
       {loading ? (
         <View style={styles.loaderContainer}>
-          <ActivityIndicator size="large" color={theme.colors.primary || '#1e293b'} />
+          <Loader />
         </View>
       ) : (
         <FlatList
           data={users}
-          keyExtractor={(item) => item.id.toString()}
+          keyExtractor={(item, index) => item.id?.toString() || index.toString()}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={theme.colors.primary}
+              colors={[theme.colors.primary]}
+            />
+          }
           renderItem={({ item }) => (
             <View style={styles.userItem}>
-              <Image 
-                source={{ uri: item.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500' }} 
-                style={styles.avatar} 
-              />
+              {item.avatar_url ? (
+                <Image source={{ uri: item.avatar_url }} style={styles.avatar} />
+              ) : (
+                <View style={styles.avatarPlaceholder}>
+                  <Ionicons name="person" size={28} color={theme.colors.textSecondary} />
+                </View>
+              )}
+
               <View style={styles.info}>
-                <Text style={styles.name}>{item.full_name}</Text>
-                <TouchableOpacity 
-                  style={[styles.addButton, requestingId === item.id && styles.buttonDisabled]} 
+                <View style={styles.textContainer}>
+                  <Text style={styles.name} numberOfLines={1}>
+                    {item.full_name || 'Zunexhire User'}
+                  </Text>
+                  {item.city ? (
+                    <Text style={styles.subText} numberOfLines={1}>
+                      {item.city}
+                    </Text>
+                  ) : null}
+                  {item.mutual_friends_count ? (
+                    <Text style={styles.mutualText}>
+                      {item.mutual_friends_count} mutual friends
+                    </Text>
+                  ) : null}
+                </View>
+
+                <TouchableOpacity
+                  style={[styles.addButton, requestingId === item.id && styles.buttonDisabled]}
                   onPress={() => handleAdd(item.id)}
                   disabled={requestingId === item.id}
                   activeOpacity={0.8}
@@ -82,7 +127,8 @@ export const FindFriendsScreen: React.FC<FindFriendsScreenProps> = ({ navigation
           )}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>No new suggestions available.</Text>
+              <Ionicons name="people-outline" size={48} color={theme.colors.textSecondary} />
+              <Text style={styles.emptyText}>No new friend suggestions right now.</Text>
             </View>
           }
         />
@@ -94,7 +140,7 @@ export const FindFriendsScreen: React.FC<FindFriendsScreenProps> = ({ navigation
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background || '#f9fafb',
+    backgroundColor: theme.colors.background,
   },
   loaderContainer: {
     flex: 1,
@@ -110,11 +156,20 @@ const styles = StyleSheet.create({
     borderBottomColor: theme.colors.border || '#e5e7eb',
   },
   avatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     marginRight: theme.spacing.md,
     backgroundColor: theme.colors.grayLight || '#f3f4f6',
+  },
+  avatarPlaceholder: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    marginRight: theme.spacing.md,
+    backgroundColor: theme.colors.grayLight || '#f3f4f6',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   info: {
     flex: 1,
@@ -122,17 +177,31 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  textContainer: {
+    flex: 1,
+    marginRight: 10,
+  },
   name: {
     fontSize: theme.typography.fontSizes.md,
     fontWeight: 'bold',
     color: theme.colors.text,
   },
+  subText: {
+    fontSize: theme.typography.fontSizes.xs,
+    color: theme.colors.textSecondary,
+    marginTop: 2,
+  },
+  mutualText: {
+    fontSize: theme.typography.fontSizes.xs,
+    color: theme.colors.textSecondary,
+    marginTop: 2,
+  },
   addButton: {
-    backgroundColor: theme.colors.primary || '#1e293b',
+    backgroundColor: theme.colors.primary,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 6,
-    minWidth: 95,
+    minWidth: 100,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -147,9 +216,12 @@ const styles = StyleSheet.create({
   emptyContainer: {
     padding: 40,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   emptyText: {
     color: theme.colors.textSecondary,
     fontSize: theme.typography.fontSizes.md,
+    marginTop: 10,
+    textAlign: 'center',
   },
 });
