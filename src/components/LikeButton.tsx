@@ -7,19 +7,43 @@ interface LikeButtonProps {
   isLiked: boolean;
   likeCount: number;
   onPress: () => void;
+  onLongPress?: () => void;
 }
 
-export const LikeButton: React.FC<LikeButtonProps> = ({ isLiked, likeCount, onPress }) => {
+const formatNumber = (num: number): string => {
+  if (!num || num === 0) return '';
+  if (num >= 1000000) {
+    return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+  }
+  if (num >= 1000) {
+    return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+  }
+  return num.toString();
+};
+
+export const LikeButton: React.FC<LikeButtonProps> = ({
+  isLiked,
+  likeCount,
+  onPress,
+  onLongPress,
+}) => {
+  const formattedCount = formatNumber(likeCount);
+
   return (
-    <TouchableOpacity style={styles.button} onPress={onPress} activeOpacity={0.7}>
-      <Ionicons 
-        name={isLiked ? "heart" : "heart-outline"} 
-        size={20} 
-        color={isLiked ? theme.colors.notification : theme.colors.textSecondary} 
+    <TouchableOpacity
+      style={styles.button}
+      onPress={onPress}
+      onLongPress={onLongPress}
+      activeOpacity={0.7}
+    >
+      <Ionicons
+        name={isLiked ? "heart" : "heart-outline"}
+        size={20}
+        color={isLiked ? theme.colors.notification : theme.colors.textSecondary}
         style={styles.icon}
       />
       <Text style={[styles.text, isLiked && styles.likedText]}>
-        Like {likeCount > 0 ? `(${likeCount})` : ''}
+        {formattedCount ? `Like ${formattedCount}` : 'Like'}
       </Text>
     </TouchableOpacity>
   );
