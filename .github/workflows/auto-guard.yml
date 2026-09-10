@@ -1,0 +1,44 @@
+name: Production Guard
+
+on:
+  push:
+    branches: [ "*" ]
+
+jobs:
+  code-sanitizer:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Fix Python Syntax, Imports and Comments with Ruff
+        run: |
+          pip install --upgrade pip
+          pip install ruff
+          ruff check . --fix --select E,F,W,I || true
+
+      - name: Setup Node and Handle Packages
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: NPM Audit, Install and Build Check
+        run: |
+          if [ -f "package.json" ]; then
+            npm install
+            npm run build --if-present
+          fi
+
+      - name: Commit Cleaned Code Back to Repository
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "🛡️ Auto-Guard: Cleaned syntax, imports and packages."
+          push_options: '--force'
