@@ -1,23 +1,9 @@
+import { Loader } from '../../components/Loader';
 import React, { useEffect, useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Image,
-  Alert,
-  ActivityIndicator,
-  Modal,
-  TextInput,
-  SafeAreaView,
-  Platform,
-  StatusBar,
-} from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, Modal, TextInput, SafeAreaView, Platform, StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../theme';
 import { fetchUserProfile, updateUserProfile } from '../../services/userService';
-import { Loader } from '../../components/Loader';
 
 interface EditProfileScreenProps {
   navigation: any;
@@ -269,7 +255,7 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({ navigation
                   disabled={saving}
                 >
                   {saving ? (
-                    <ActivityIndicator color="#fff" size="small" />
+                    <Loader />
                   ) : (
                     <Text style={styles.saveBtnText}>Save</Text>
                   )}

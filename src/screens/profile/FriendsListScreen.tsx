@@ -1,19 +1,9 @@
+import { Loader } from '../../components/Loader';
 import React, { useEffect, useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  Image,
-  TouchableOpacity,
-  Alert,
-  TextInput,
-  ActivityIndicator,
-} from 'react-native';
+import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, Alert, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
 import { fetchUserFriends, removeFriend } from '../../services/userService';
-import { Loader } from '../../components/Loader';
 import { theme } from '../../theme';
 
 interface FriendsListScreenProps {
@@ -171,7 +161,7 @@ export const FriendsListScreen: React.FC<FriendsListScreenProps> = ({ navigation
           ListFooterComponent={
             loadingMore ? (
               <View style={styles.footerLoader}>
-                <ActivityIndicator size="small" color="#1877f2" />
+                <Loader />
               </View>
             ) : null
           }

@@ -1,19 +1,9 @@
+import { Loader } from '../../components/Loader';
 import React, { useEffect, useState } from 'react';
-import {
-  View,
-  Text,
-  FlatList,
-  StyleSheet,
-  Image,
-  TouchableOpacity,
-  Alert,
-  ActivityIndicator,
-  RefreshControl,
-} from 'react-native';
+import { View, Text, FlatList, StyleSheet, Image, TouchableOpacity, Alert, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
 import { fetchNonFriends, sendFriendRequest } from '../../services/userService';
-import { Loader } from '../../components/Loader';
 import { theme } from '../../theme';
 
 interface FindFriendsScreenProps {
@@ -117,7 +107,7 @@ export const FindFriendsScreen: React.FC<FindFriendsScreenProps> = ({ navigation
                   activeOpacity={0.8}
                 >
                   {requestingId === item.id ? (
-                    <ActivityIndicator size="small" color="#ffffff" />
+                    <Loader />
                   ) : (
                     <Text style={styles.addText}>Add Friend</Text>
                   )}

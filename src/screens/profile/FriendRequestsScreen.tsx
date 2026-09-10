@@ -1,19 +1,9 @@
+import { Loader } from '../../components/Loader';
 import React, { useEffect, useState } from 'react';
-import {
-  View,
-  Text,
-  FlatList,
-  StyleSheet,
-  Image,
-  TouchableOpacity,
-  Alert,
-  ActivityIndicator,
-  RefreshControl,
-} from 'react-native';
+import { View, Text, FlatList, StyleSheet, Image, TouchableOpacity, Alert, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
 import { fetchFriendRequests, acceptFriendRequest, rejectFriendRequest } from '../../services/userService';
-import { Loader } from '../../components/Loader';
 import { theme } from '../../theme';
 
 interface FriendRequestsScreenProps {
@@ -118,7 +108,7 @@ export const FriendRequestsScreen: React.FC<FriendRequestsScreenProps> = ({ navi
                     activeOpacity={0.8}
                   >
                     {actionId === item.id ? (
-                      <ActivityIndicator size="small" color="#ffffff" />
+                      <Loader />
                     ) : (
                       <Text style={styles.acceptText}>Confirm</Text>
                     )}

@@ -1,7 +1,7 @@
+import { Loader } from '../../components/Loader';
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { createGroup } from '../../services/groupService';
-import { Loader } from '../../components/Loader';
 import { theme } from '../../theme';
 
 interface CreateGroupScreenProps {

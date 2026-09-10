@@ -1,8 +1,8 @@
+import { Loader } from '../../components/Loader';
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Alert, TouchableOpacity } from 'react-native';
 import { Header } from '../../components/Header';
 import { fetchPersonalDetails } from '../../services/userService';
-import { Loader } from '../../components/Loader';
 import { theme } from '../../theme';
 import { Ionicons } from '@expo/vector-icons';
 

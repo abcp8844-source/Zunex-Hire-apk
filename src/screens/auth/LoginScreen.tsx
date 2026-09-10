@@ -1,7 +1,7 @@
+import { Loader } from '../../components/Loader';
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import { signInUser } from '../../services/authService';
-import { Loader } from '../../components/Loader';
 import { theme } from '../../theme';
 
 interface LoginScreenProps {

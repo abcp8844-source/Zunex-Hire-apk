@@ -1,14 +1,6 @@
+import { Loader } from '../../components/Loader';
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  Modal,
-  Image,
-  ActivityIndicator,
-} from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Modal, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { updatePost } from '../../services/postService';
 import { PostImageEditor } from './PostImageEditor';
@@ -68,7 +60,7 @@ export const EditPostScreen: React.FC<EditPostScreenProps> = ({
           <Text style={styles.headerTitle}>Edit Post</Text>
           <TouchableOpacity onPress={handleUpdate} disabled={loading} activeOpacity={0.7}>
             {loading ? (
-              <ActivityIndicator size="small" color="#1877f2" />
+              <Loader />
             ) : (
               <Text style={styles.saveText}>Save</Text>
             )}

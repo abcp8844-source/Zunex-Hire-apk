@@ -1,16 +1,6 @@
+import { Loader } from '../../components/Loader';
 import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  Image,
-  StyleSheet,
-  Modal,
-  ScrollView,
-  ActivityIndicator,
-  Dimensions,
-} from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet, Modal, ScrollView, Dimensions } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { createPost } from '../../services/postService';
@@ -197,7 +187,7 @@ export const CreatePostScreen: React.FC<CreatePostScreenProps> = ({ onClose, onP
 
             <View style={styles.finalPostContainer}>
               <TouchableOpacity style={styles.finalPostBtn} onPress={handleFinalPost} disabled={loading} activeOpacity={0.8}>
-                {loading ? <ActivityIndicator color="#ffffff" /> : <Text style={styles.finalPostBtnText}>Post Now</Text>}
+                {loading ? <Loader /> : <Text style={styles.finalPostBtnText}>Post Now</Text>}
               </TouchableOpacity>
             </View>
           </>

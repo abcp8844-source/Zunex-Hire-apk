@@ -1,3 +1,4 @@
+import { Loader } from '../../components/Loader';
 import React, { useEffect, useState } from 'react';
 import {
   View,
@@ -11,7 +12,6 @@ import {
 } from 'react-native';
 import { Header } from '../../components/Header';
 import { fetchUserPhotos } from '../../services/userService';
-import { Loader } from '../../components/Loader';
 import { theme } from '../../theme';
 
 const { width } = Dimensions.get('window');

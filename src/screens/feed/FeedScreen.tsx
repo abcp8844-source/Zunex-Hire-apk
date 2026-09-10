@@ -1,9 +1,9 @@
+import { Loader } from '../../components/Loader';
 import React, { useEffect, useState, useCallback } from 'react';
 import { View, FlatList, StyleSheet, TouchableOpacity, Text, Image, RefreshControl } from 'react-native';
 import { Header } from '../../components/Header';
 import { PostCard } from './PostCard';
 import { CreatePostScreen } from './CreatePostScreen';
-import { Loader } from '../../components/Loader';
 import { fetchFeedPosts } from '../../services/postService';
 import { getCurrentUserProfile } from '../../services/userService';
 import { Ionicons } from '@expo/vector-icons';

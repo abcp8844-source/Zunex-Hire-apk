@@ -1,21 +1,10 @@
+import { Loader } from '../../components/Loader';
 import React, { useEffect, useState, useCallback } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  TouchableOpacity,
-  Alert,
-  ActivityIndicator,
-  RefreshControl,
-  Image,
-  SafeAreaView,
-} from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, RefreshControl, Image, SafeAreaView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
 import { fetchUserProfile, fetchUserPosts } from '../../services/userService';
 import { PostCard } from '../feed/PostCard';
-import { Loader } from '../../components/Loader';
 
 interface ProfileScreenProps {
   navigation: any;
@@ -228,7 +217,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation, route 
           ListFooterComponent={
             loadingMore ? (
               <View style={styles.footerLoader}>
-                <ActivityIndicator size="small" color="#1877f2" />
+                <Loader />
               </View>
             ) : null
           }

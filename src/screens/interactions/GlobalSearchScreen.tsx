@@ -1,9 +1,9 @@
+import { Loader } from '../../components/Loader';
 import React, { useState } from 'react';
 import { View, TextInput, FlatList, Text, TouchableOpacity, StyleSheet, Image, ScrollView } from 'react-native';
 import { searchUsers } from '../../services/userService';
 import { searchPosts } from '../../services/postService';
 import { searchGroups } from '../../services/groupService';
-import { Loader } from '../../components/Loader';
 import { theme } from '../../theme';
 import { Ionicons } from '@expo/vector-icons';
 

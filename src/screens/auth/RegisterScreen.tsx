@@ -1,7 +1,7 @@
+import { Loader } from '../../components/Loader';
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { signUpUser } from '../../services/authService';
-import { Loader } from '../../components/Loader';
 import { theme } from '../../theme';
 
 interface RegisterScreenProps {
