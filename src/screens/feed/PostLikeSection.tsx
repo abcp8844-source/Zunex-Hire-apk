@@ -57,19 +57,24 @@ export const PostLikeSection: React.FC<PostLikeSectionProps> = ({
       if (!user) return;
 
       if (finalIsLiked) {
+        const reactionPayload = {
+          post_id: postId,
+          user_id: user.id,
+          like: reactionType === 'like',
+          love: reactionType === 'love',
+          care: reactionType === 'care',
+          haha: reactionType === 'haha',
+          wow: reactionType === 'wow',
+          sad: reactionType === 'sad',
+          angry: reactionType === 'angry',
+        };
+
         await supabase
-          .from('post_reactions')
-          .upsert(
-            {
-              post_id: postId,
-              user_id: user.id,
-              reaction_type: reactionType,
-            },
-            { onConflict: 'post_id,user_id' }
-          );
+          .from('likes')
+          .upsert(reactionPayload, { onConflict: 'post_id,user_id' });
       } else {
         await supabase
-          .from('post_reactions')
+          .from('likes')
           .delete()
           .eq('post_id', postId)
           .eq('user_id', user.id);
@@ -78,9 +83,7 @@ export const PostLikeSection: React.FC<PostLikeSectionProps> = ({
       if (onUpdate) {
         onUpdate();
       }
-    } catch (error) {
-      // Silent error handler
-    }
+    } catch (error) {}
   };
 
   const handleLikeToggle = (selectedReaction: string = 'like') => {
