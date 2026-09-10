@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Image, StyleSheet, TouchableOpacity, Text } from 'react-native';
+import { View, Image, StyleSheet, TouchableOpacity, Text, StatusBar } from 'react-native';
 import { theme } from '../../theme';
 
 interface MediaViewerScreenProps {
@@ -10,7 +10,8 @@ interface MediaViewerScreenProps {
 export const MediaViewerScreen: React.FC<MediaViewerScreenProps> = ({ imageUrl, onClose }) => {
   return (
     <View style={styles.container}>
-      <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+      <StatusBar barStyle="light-content" backgroundColor="#000000" />
+      <TouchableOpacity style={styles.closeButton} onPress={onClose} activeOpacity={0.8}>
         <Text style={styles.closeText}>✕</Text>
       </TouchableOpacity>
       <Image source={{ uri: imageUrl }} style={styles.image} resizeMode="contain" />
@@ -30,11 +31,17 @@ const styles = StyleSheet.create({
     top: 50,
     right: 20,
     zIndex: 10,
-    padding: theme.spacing.sm,
+    padding: theme.spacing.sm || 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    borderRadius: 20,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   closeText: {
-    color: theme.colors.white,
-    fontSize: 24,
+    color: theme.colors?.white || '#ffffff',
+    fontSize: 20,
     fontWeight: 'bold',
   },
   image: {
