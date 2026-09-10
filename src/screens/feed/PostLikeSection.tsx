@@ -130,7 +130,7 @@ export const PostLikeSection: React.FC<PostLikeSectionProps> = ({
         pendingStateRef.current.isLiked,
         pendingStateRef.current.reactionType
       );
-    }, 1500);
+    }, 5000);
   };
 
   return (
