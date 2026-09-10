@@ -28,6 +28,7 @@ export const PostLikeSection: React.FC<PostLikeSectionProps> = ({
 
   return (
     <View style={{ flex: 1, position: 'relative' }}>
+      {/* ایموجی ری ایکشن پکر پاپ اپ اب یہاں شفٹ ہو گیا ہے */}
       {showReactionPicker && (
         <View style={styles.reactionPickerPopup}>
           <TouchableOpacity onPress={() => handleLike('like')}><Text style={styles.pickerEmoji}>👍</Text></TouchableOpacity>
