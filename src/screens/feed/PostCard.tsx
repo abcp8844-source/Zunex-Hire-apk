@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Modal,
   Alert,
+  Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LikeButton } from '../../components/LikeButton';
@@ -23,6 +24,8 @@ interface PostCardProps {
   onUpdate: () => void;
   navigation?: any;
 }
+
+const { width } = Dimensions.get('window');
 
 const PostCardComponent: React.FC<PostCardProps> = ({ post, currentUserId, onUpdate, navigation }) => {
   const [showComments, setShowComments] = useState(false);
@@ -71,9 +74,11 @@ const PostCardComponent: React.FC<PostCardProps> = ({ post, currentUserId, onUpd
 
   return (
     <View style={styles.card}>
+      {/* Header Section */}
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.userInfo}
+          activeOpacity={0.7}
           onPress={() => navigation?.navigate('Profile', { userId: post.user_id })}
         >
           <Image
@@ -98,19 +103,30 @@ const PostCardComponent: React.FC<PostCardProps> = ({ post, currentUserId, onUpd
           </View>
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => setShowOptionsModal(true)}>
+        <TouchableOpacity 
+          style={styles.optionsButton} 
+          onPress={() => setShowOptionsModal(true)}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
           <Ionicons name="ellipsis-horizontal" size={20} color="#65676b" />
         </TouchableOpacity>
       </View>
 
+      {/* Content Text */}
       {post.content ? <Text style={styles.content}>{post.content}</Text> : null}
 
+      {/* Post Image with No-Crop (contain mode) */}
       {post.image_url ? (
-        <TouchableOpacity onPress={() => setSelectedMedia(post.image_url)} activeOpacity={0.9}>
-          <Image source={{ uri: post.image_url }} style={styles.image} resizeMode="cover" />
+        <TouchableOpacity onPress={() => setSelectedMedia(post.image_url)} activeOpacity={0.95}>
+          <Image 
+            source={{ uri: post.image_url }} 
+            style={styles.image} 
+            resizeMode="contain" 
+          />
         </TouchableOpacity>
       ) : null}
 
+      {/* Actions Bar */}
       <View style={styles.actionsBar}>
         <LikeButton
           isLiked={post.is_liked}
@@ -127,8 +143,10 @@ const PostCardComponent: React.FC<PostCardProps> = ({ post, currentUserId, onUpd
         />
       </View>
 
+      {/* Comments Section */}
       {showComments && <CommentSection postId={post.id} />}
 
+      {/* Options Modal */}
       <Modal visible={showOptionsModal} transparent animationType="fade">
         <TouchableOpacity
           style={styles.modalOverlay}
@@ -175,6 +193,7 @@ const PostCardComponent: React.FC<PostCardProps> = ({ post, currentUserId, onUpd
         </TouchableOpacity>
       </Modal>
 
+      {/* Edit Post Modal */}
       {isEditing && (
         <EditPostScreen
           post={post}
@@ -186,6 +205,7 @@ const PostCardComponent: React.FC<PostCardProps> = ({ post, currentUserId, onUpd
         />
       )}
 
+      {/* Media Viewer Modal */}
       {selectedMedia && (
         <Modal visible={true} transparent={false}>
           <MediaViewerScreen
@@ -217,6 +237,7 @@ const styles = StyleSheet.create({
   userInfo: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
   },
   avatar: {
     width: 40,
@@ -243,15 +264,19 @@ const styles = StyleSheet.create({
     color: '#65676b',
     fontSize: 10,
   },
+  optionsButton: {
+    padding: 4,
+  },
   content: {
     paddingHorizontal: 12,
     paddingBottom: 12,
     fontSize: 15,
     color: '#050505',
+    lineHeight: 20,
   },
   image: {
     width: '100%',
-    height: 300,
+    height: 320,
     backgroundColor: '#f0f2f5',
   },
   actionsBar: {
