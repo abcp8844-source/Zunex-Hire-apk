@@ -13,7 +13,7 @@ jobs:
         with:
           python-version: '3.10'
 
-      - run: pip install requests
+      - run: pip install supabase
 
       - run: python fix.py
         env:
