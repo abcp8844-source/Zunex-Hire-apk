@@ -11,13 +11,13 @@ import {
   FlatList,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { LikeButton } from '../../components/LikeButton';
 import { CommentButton } from '../../components/CommentButton';
 import { ShareButton } from '../../components/ShareButton';
+import { PostLikeSection } from './PostLikeSection';
 import { CommentSection } from './CommentSection';
 import { EditPostScreen } from './EditPostScreen';
 import { MediaViewerScreen } from './MediaViewerScreen';
-import { toggleLikePost, sharePost, deletePost, savePost, reportPost } from '../../services/postService';
+import { sharePost, deletePost, savePost, reportPost } from '../../services/postService';
 
 interface PostCardProps {
   post: any;
@@ -34,17 +34,10 @@ const PostCardComponent: React.FC<PostCardProps> = ({ post, currentUserId, onUpd
   const [isEditing, setIsEditing] = useState(false);
   const [selectedMedia, setSelectedMedia] = useState<string | null>(null);
 
-  const [showReactionPicker, setShowReactionPicker] = useState(false);
   const [showReactionsListModal, setShowReactionsListModal] = useState(false);
   const [selectedReactionFilter, setSelectedReactionFilter] = useState('all');
 
   const isOwner = post.user_id === currentUserId;
-
-  const handleLike = async (reactionType: string = 'like') => {
-    setShowReactionPicker(false);
-    await toggleLikePost(post.id, reactionType);
-    onUpdate();
-  };
 
   const handleShare = async () => {
     await sharePost(post.id);
@@ -167,26 +160,13 @@ const PostCardComponent: React.FC<PostCardProps> = ({ post, currentUserId, onUpd
       )}
 
       <View style={styles.actionsBar}>
-        <View style={{ flex: 1, position: 'relative' }}>
-          {showReactionPicker && (
-            <View style={styles.reactionPickerPopup}>
-              <TouchableOpacity onPress={() => handleLike('like')}><Text style={styles.pickerEmoji}>👍</Text></TouchableOpacity>
-              <TouchableOpacity onPress={() => handleLike('love')}><Text style={styles.pickerEmoji}>❤️</Text></TouchableOpacity>
-              <TouchableOpacity onPress={() => handleLike('care')}><Text style={styles.pickerEmoji}>🥰</Text></TouchableOpacity>
-              <TouchableOpacity onPress={() => handleLike('haha')}><Text style={styles.pickerEmoji}>😆</Text></TouchableOpacity>
-              <TouchableOpacity onPress={() => handleLike('wow')}><Text style={styles.pickerEmoji}>😮</Text></TouchableOpacity>
-              <TouchableOpacity onPress={() => handleLike('sad')}><Text style={styles.pickerEmoji}>😢</Text></TouchableOpacity>
-              <TouchableOpacity onPress={() => handleLike('angry')}><Text style={styles.pickerEmoji}>😡</Text></TouchableOpacity>
-            </View>
-          )}
-
-          <LikeButton
-            isLiked={post.is_liked}
-            likeCount={totalReactions}
-            onPress={() => handleLike(post.user_reaction || 'like')}
-            onLongPress={() => setShowReactionPicker(true)}
-          />
-        </View>
+        <PostLikeSection
+          postId={post.id}
+          isLiked={post.is_liked}
+          totalReactions={totalReactions}
+          userReaction={post.user_reaction}
+          onUpdate={onUpdate}
+        />
 
         <CommentButton
           commentCount={post.comments_count || 0}
@@ -408,26 +388,6 @@ const styles = StyleSheet.create({
     borderTopColor: '#e4e6eb',
     paddingHorizontal: 12,
     paddingVertical: 4,
-  },
-  reactionPickerPopup: {
-    position: 'absolute',
-    bottom: 45,
-    left: 0,
-    backgroundColor: '#ffffff',
-    borderRadius: 30,
-    flexDirection: 'row',
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    gap: 8,
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    zIndex: 100,
-  },
-  pickerEmoji: {
-    fontSize: 24,
   },
   modalOverlay: {
     flex: 1,
