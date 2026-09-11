@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Modal, Image, TouchableWithoutFeedback, Animated } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Modal, Image, TouchableWithoutFeedback } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../theme';
+import { FB_REACTIONS } from '../constants/reactions';
 
 interface LikeButtonProps {
   isLiked: boolean;
@@ -10,16 +11,6 @@ interface LikeButtonProps {
   onPress: () => void;
   onSelectReaction: (reactionId: string) => void;
 }
-
-const FB_REACTIONS = [
-  { id: 'like', label: 'Like', icon: 'https://raw.githubusercontent.com/facebook/react-native/main/packages/rn-tester/js/assets/like.png' },
-  { id: 'love', label: 'Love', icon: 'https://images.rawpixel.com/image_png_800/2022/10/rm378-02a.png' },
-  { id: 'care', label: 'Care', icon: 'https://images.rawpixel.com/image_png_800/2022/10/rm378-02e.png' },
-  { id: 'haha', label: 'Haha', icon: 'https://images.rawpixel.com/image_png_800/2022/10/rm378-02b.png' },
-  { id: 'wow', label: 'Wow', icon: 'https://images.rawpixel.com/image_png_800/2022/10/rm378-02c.png' },
-  { id: 'sad', label: 'Sad', icon: 'https://images.rawpixel.com/image_png_800/2022/10/rm378-02d.png' },
-  { id: 'angry', label: 'Angry', icon: 'https://images.rawpixel.com/image_png_800/2022/10/rm378-02f.png' },
-];
 
 const formatNumber = (num: number): string => {
   if (!num || num === 0) return '';
@@ -38,13 +29,18 @@ export const LikeButton: React.FC<LikeButtonProps> = ({
   const [showPicker, setShowPicker] = useState(false);
   const formattedCount = formatNumber(likeCount);
 
+  const reactionsArray = Object.keys(FB_REACTIONS).map((key) => ({
+    id: key,
+    ...FB_REACTIONS[key],
+  }));
+
   const getReactionMeta = () => {
     if (!isLiked) return { label: 'Like', icon: null, color: theme.colors.textSecondary };
-    const current = FB_REACTIONS.find((r) => r.id === userReaction) || FB_REACTIONS[0];
+    const current = FB_REACTIONS[userReaction || 'like'] || FB_REACTIONS['like'];
     return {
       label: current.label,
       icon: current.icon,
-      color: current.id === 'like' ? '#1877f2' : theme.colors.notification,
+      color: userReaction === 'like' ? '#1877f2' : theme.colors.notification,
     };
   };
 
@@ -56,7 +52,7 @@ export const LikeButton: React.FC<LikeButtonProps> = ({
         <TouchableWithoutFeedback onPress={() => setShowPicker(false)}>
           <View style={styles.modalOverlay}>
             <View style={styles.reactionPickerPopup}>
-              {FB_REACTIONS.map((item) => (
+              {reactionsArray.map((item) => (
                 <TouchableOpacity
                   key={item.id}
                   onPress={() => {
