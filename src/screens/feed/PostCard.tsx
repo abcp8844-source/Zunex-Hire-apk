@@ -16,6 +16,7 @@ import { EditPostScreen } from './EditPostScreen';
 import { MediaViewerScreen } from './MediaViewerScreen';
 import { ReactionsModal } from './ReactionsModal';
 import { deletePost, savePost, reportPost, sharePost } from '../../services/postService';
+import { FB_REACTIONS } from '../constants/reactions';
 
 interface PostCardProps {
   post: any;
@@ -192,22 +193,25 @@ const PostCardComponent: React.FC<PostCardProps> = ({ post, currentUserId, onUpd
             <>
               <View style={styles.stackedIconsContainer}>
                 {topReactions.length > 0 ? (
-                  topReactions.slice(0, 3).map((item: any, index: number) => (
-                    <View 
-                      key={index} 
-                      style={[
-                        styles.miniReactionBadge, 
-                        { zIndex: 3 - index, marginLeft: index > 0 ? -6 : 0 }
-                      ]}
-                    >
-                      {item?.emoji ? (
-                        <Text style={styles.miniEmojiText}>{item.emoji}</Text>
-                      ) : null}
-                    </View>
-                  ))
-                ) : localUserReaction ? (
+                  topReactions.slice(0, 3).map((item: any, index: number) => {
+                    const reactionDef = FB_REACTIONS[item?.type];
+                    return (
+                      <View 
+                        key={index} 
+                        style={[
+                          styles.miniReactionBadge, 
+                          { zIndex: 3 - index, marginLeft: index > 0 ? -6 : 0 }
+                        ]}
+                      >
+                        {reactionDef?.icon ? (
+                          <Image source={{ uri: reactionDef.icon }} style={styles.miniEmojiImage} />
+                        ) : null}
+                      </View>
+                    );
+                  })
+                ) : localUserReaction && FB_REACTIONS[localUserReaction] ? (
                   <View style={styles.miniReactionBadge}>
-                    <Text style={styles.miniEmojiText}>{localUserReaction}</Text>
+                    <Image source={{ uri: FB_REACTIONS[localUserReaction].icon }} style={styles.miniEmojiImage} />
                   </View>
                 ) : null}
               </View>
@@ -262,8 +266,6 @@ const PostCardComponent: React.FC<PostCardProps> = ({ post, currentUserId, onUpd
           visible={showReactionsModal}
           postId={post.id}
           totalReactions={localReactionsCount}
-          userReaction={localUserReaction}
-          isLiked={localIsLiked}
           onClose={() => setShowReactionsModal(false)}
           navigation={navigation}
         />
@@ -443,9 +445,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#e4e6eb',
+    overflow: 'hidden',
   },
-  miniEmojiText: {
-    fontSize: 11,
+  miniEmojiImage: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
   },
   reactionCountText: {
     fontSize: 13,
