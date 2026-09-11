@@ -1,6 +1,8 @@
 import { Loader } from '../../components/Loader';
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, FlatList, StyleSheet, TouchableOpacity, Text, Image, RefreshControl } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Text, Image, Dimensions } from 'react-native';
+import Carousel from 'react-native-reanimated-carousel';
+import { interpolate } from 'react-native-reanimated';
 import { Header } from '../../components/Header';
 import { PostCard } from './PostCard';
 import { CreatePostScreen } from './CreatePostScreen';
@@ -12,6 +14,7 @@ interface FeedScreenProps {
   navigation: any;
 }
 
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const PAGE_SIZE = 10;
 
 export const FeedScreen: React.FC<FeedScreenProps> = ({ navigation }) => {
@@ -81,14 +84,16 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ navigation }) => {
     loadProfile();
   }, []);
 
-  const renderPostItem = useCallback(
+  const render3DPostItem = useCallback(
     ({ item }: { item: any }) => (
-      <PostCard
-        post={item}
-        currentUserId={currentUser?.id || ''}
-        onUpdate={() => loadPosts(0, true)}
-        navigation={navigation}
-      />
+      <View style={styles.cardWrapper}>
+        <PostCard
+          post={item}
+          currentUserId={currentUser?.id || ''}
+          onUpdate={() => loadPosts(0, true)}
+          navigation={navigation}
+        />
+      </View>
     ),
     [currentUser?.id, navigation]
   );
@@ -135,23 +140,38 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ navigation }) => {
           <Loader />
         </View>
       ) : (
-        <FlatList
-          data={posts}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={renderPostItem}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#003399']} />
-          }
-          onEndReached={handleLoadMore}
-          onEndReachedThreshold={0.5}
-          ListFooterComponent={loadingMore ? <Loader /> : null}
-          initialNumToRender={5}
-          maxToRenderPerBatch={5}
-          windowSize={10}
-          removeClippedSubviews={true}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.listContainer}
-        />
+        <View style={styles.carouselWrapper}>
+          <Carousel
+            loop={false}
+            vertical={true}
+            width={SCREEN_WIDTH}
+            height={SCREEN_HEIGHT * 0.72}
+            data={posts}
+            scrollAnimationDuration={600}
+            onSnapToItem={(index) => {
+              if (index >= posts.length - 2 && hasMore) {
+                handleLoadMore();
+              }
+            }}
+            customAnimation={(value: number) => {
+              'worklet';
+              const translateY = interpolate(
+                value,
+                [-1, 0, 1],
+                [-SCREEN_HEIGHT * 0.38, 0, SCREEN_HEIGHT * 0.38]
+              );
+              const scale = interpolate(value, [-1, 0, 1], [0.82, 1, 0.82]);
+              const opacity = interpolate(value, [-1, 0, 1], [0.35, 1, 0.35]);
+              const rotateX = `${interpolate(value, [-1, 0, 1], [48, 0, -48])}deg`;
+
+              return {
+                transform: [{ translateY }, { scale }, { rotateX }],
+                opacity,
+              };
+            }}
+            renderItem={render3DPostItem}
+          />
+        </View>
       )}
 
       {isCreatingPost && (
@@ -210,7 +230,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  listContainer: {
-    paddingBottom: 16,
+  carouselWrapper: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cardWrapper: {
+    width: SCREEN_WIDTH * 0.94,
+    height: SCREEN_HEIGHT * 0.68,
+    alignSelf: 'center',
+    borderRadius: 16,
+    overflow: 'hidden',
   },
 });
