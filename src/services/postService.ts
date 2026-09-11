@@ -18,26 +18,42 @@ export const fetchFeedPosts = async (page: number = 0, limit: number = 10) => {
     .range(start, end);
 
   if (error) throw error;
-
   if (!data) return [];
 
   if (user) {
     const postIds = data.map((p) => p.id);
+    
     const { data: userLikes } = await supabase
       .from('likes')
-      .select('post_id')
+      .select('post_id, like, love, care, haha, wow, sad, angry')
       .eq('user_id', user.id)
       .in('post_id', postIds);
 
-    const likedPostIds = new Set(userLikes?.map((l) => l.post_id));
+    const userReactionMap = new Map();
+    userLikes?.forEach((l) => {
+      let rType = 'like';
+      if (l.love) rType = 'love';
+      else if (l.care) rType = 'care';
+      else if (l.haha) rType = 'haha';
+      else if (l.wow) rType = 'wow';
+      else if (l.sad) rType = 'sad';
+      else if (l.angry) rType = 'angry';
+      else if (l.like) rType = 'like';
 
-    return data.map((post) => ({
-      ...post,
-      likes_count: post.likes?.[0]?.count || 0,
-      comments_count: post.comments?.[0]?.count || 0,
-      shares_count: post.shares?.[0]?.count || 0,
-      is_liked: likedPostIds.has(post.id),
-    }));
+      userReactionMap.set(l.post_id, { isLiked: true, reactionType: rType });
+    });
+
+    return data.map((post) => {
+      const userReaction = userReactionMap.get(post.id);
+      return {
+        ...post,
+        likes_count: post.likes?.[0]?.count || 0,
+        comments_count: post.comments?.[0]?.count || 0,
+        shares_count: post.shares?.[0]?.count || 0,
+        is_liked: userReaction ? userReaction.isLiked : false,
+        user_reaction: userReaction ? userReaction.reactionType : undefined,
+      };
+    });
   }
 
   return data.map((post) => ({
@@ -46,6 +62,7 @@ export const fetchFeedPosts = async (page: number = 0, limit: number = 10) => {
     comments_count: post.comments?.[0]?.count || 0,
     shares_count: post.shares?.[0]?.count || 0,
     is_liked: false,
+    user_reaction: undefined,
   }));
 };
 
@@ -98,33 +115,38 @@ export const deletePost = async (postId: string) => {
   return true;
 };
 
-export const toggleLike = async (postId: string, postOwnerId?: string) => {
+export const toggleLike = async (postId: string, reactionType: string = 'like', postOwnerId?: string) => {
   const user = (await supabase.auth.getUser()).data.user;
   if (!user) return;
 
-  const { data: existing } = await supabase
+  const reactionPayload = {
+    post_id: postId,
+    user_id: user.id,
+    like: reactionType === 'like',
+    love: reactionType === 'love',
+    care: reactionType === 'care',
+    haha: reactionType === 'haha',
+    wow: reactionType === 'wow',
+    sad: reactionType === 'sad',
+    angry: reactionType === 'angry',
+  };
+
+  const { error } = await supabase
     .from('likes')
-    .select('id')
-    .eq('post_id', postId)
-    .eq('user_id', user.id)
-    .maybeSingle();
+    .upsert(reactionPayload, { onConflict: 'post_id,user_id' });
 
-  if (existing) {
-    await supabase.from('likes').delete().eq('post_id', postId).eq('user_id', user.id);
-  } else {
-    await supabase.from('likes').insert([{ post_id: postId, user_id: user.id }]);
+  if (error) throw error;
 
-    if (postOwnerId && postOwnerId !== user.id) {
-      await supabase.from('notifications').insert([
-        {
-          receiver_id: postOwnerId,
-          sender_id: user.id,
-          type: 'like',
-          content: 'liked your post.',
-          reference_id: postId,
-        },
-      ]);
-    }
+  if (postOwnerId && postOwnerId !== user.id) {
+    await supabase.from('notifications').insert([
+      {
+        receiver_id: postOwnerId,
+        sender_id: user.id,
+        type: 'like',
+        content: `reacted ${reactionType} to your post.`,
+        reference_id: postId,
+      },
+    ]);
   }
 };
 
