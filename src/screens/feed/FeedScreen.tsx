@@ -1,188 +1,58 @@
 import { Loader } from '../../components/Loader';
-import React, { useEffect, useState, useCallback } from 'react';
-import { View, StyleSheet, TouchableOpacity, Text, Image, Dimensions } from 'react-native';
-import Carousel from 'react-native-reanimated-carousel';
-import { interpolate } from 'react-native-reanimated';
-import { Header } from '../../components/Header';
-import { PostCard } from './PostCard';
-import { CreatePostScreen } from './CreatePostScreen';
-import { fetchFeedPosts } from '../../services/postService';
-import { getCurrentUserProfile } from '../../services/userService';
-import { Ionicons } from '@expo/vector-icons';
+import React, { useState } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { resetPassword } from '../../services/authService';
+import { theme } from '../../theme';
 
-interface FeedScreenProps {
+interface ForgotPasswordScreenProps {
   navigation: any;
 }
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
-const PAGE_SIZE = 10;
-
-export const FeedScreen: React.FC<FeedScreenProps> = ({ navigation }) => {
-  const [posts, setPosts] = useState<any[]>([]);
-  const [isCreatingPost, setIsCreatingPost] = useState(false);
+export const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation }) => {
+  const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
-  const [currentUser, setCurrentUser] = useState<any>(null);
-  const [page, setPage] = useState(0);
-  const [hasMore, setHasMore] = useState(true);
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
 
-  const loadPosts = async (pageNumber: number = 0, isRefresh: boolean = false) => {
-    if (loading || loadingMore) return;
-
-    if (isRefresh) {
-      setRefreshing(true);
-    } else if (pageNumber === 0) {
-      setLoading(true);
+  const handleReset = async () => {
+    if (!email) {
+      setError('Please enter your email');
+      return;
+    }
+    setError('');
+    setMessage('');
+    setLoading(true);
+    const { error: err } = await resetPassword(email);
+    setLoading(false);
+    if (err) {
+      setError(err.message);
     } else {
-      setLoadingMore(true);
-    }
-
-    try {
-      const data = await fetchFeedPosts(pageNumber, PAGE_SIZE);
-      if (data && data.length > 0) {
-        setPosts((prevPosts) => (isRefresh || pageNumber === 0 ? data : [...prevPosts, ...data]));
-        setHasMore(data.length === PAGE_SIZE);
-        setPage(pageNumber);
-      } else {
-        if (isRefresh || pageNumber === 0) setPosts([]);
-        setHasMore(false);
-      }
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-      setLoadingMore(false);
+      setMessage('Password reset link sent to your email.');
     }
   };
-
-  const onRefresh = useCallback(() => {
-    setHasMore(true);
-    loadPosts(0, true);
-  }, []);
-
-  const handleLoadMore = () => {
-    if (hasMore && !loadingMore && !loading && !refreshing) {
-      loadPosts(page + 1);
-    }
-  };
-
-  const loadProfile = async () => {
-    try {
-      const userProfile = await getCurrentUserProfile();
-      if (userProfile) {
-        setCurrentUser(userProfile);
-      }
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
-  useEffect(() => {
-    loadPosts(0);
-    loadProfile();
-  }, []);
-
-  const render3DPostItem = useCallback(
-    ({ item }: { item: any }) => (
-      <View style={styles.cardWrapper}>
-        <PostCard
-          post={item}
-          currentUserId={currentUser?.id || ''}
-          onUpdate={() => loadPosts(0, true)}
-          navigation={navigation}
-        />
-      </View>
-    ),
-    [currentUser?.id, navigation]
-  );
 
   return (
     <View style={styles.container}>
-      <Header
-        onSearchPress={() => navigation.navigate('GlobalSearch')}
-        onMenuPress={() => navigation.navigate('Menu')}
-      />
-
-      <View style={styles.createPostBar}>
-        <TouchableOpacity
-          onPress={() => navigation.navigate('Profile', { userId: currentUser?.id })}
-          activeOpacity={0.8}
-        >
-          <Image
-            source={{
-              uri: currentUser?.avatar_url || 'https://via.placeholder.com/150',
-            }}
-            style={styles.userAvatar}
-          />
+      <View style={styles.formContainer}>
+        <Text style={styles.title}>Reset Password</Text>
+        {error ? <Text style={styles.errorText}>{error}</Text> : null}
+        {message ? <Text style={styles.successText}>{message}</Text> : null}
+        <TextInput
+          style={styles.input}
+          placeholder="Email address"
+          placeholderTextColor={theme.colors.textSecondary}
+          value={email}
+          onChangeText={setEmail}
+          autoCapitalize="none"
+          keyboardType="email-address"
+        />
+        <TouchableOpacity style={styles.button} onPress={handleReset} disabled={loading}>
+          {loading ? <Loader /> : <Text style={styles.buttonText}>Send Reset Link</Text>}
         </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.createPostInput}
-          onPress={() => setIsCreatingPost(true)}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.createPostText}>What's on your mind?</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.mediaIconBtn}
-          onPress={() => setIsCreatingPost(true)}
-          activeOpacity={0.7}
-        >
-          <Ionicons name="images" size={24} color="#45bd62" />
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Text style={styles.backLink}>Back to Login</Text>
         </TouchableOpacity>
       </View>
-
-      {loading && !refreshing && posts.length === 0 ? (
-        <View style={styles.loaderContainer}>
-          <Loader />
-        </View>
-      ) : (
-        <View style={styles.carouselWrapper}>
-          <Carousel
-            loop={false}
-            vertical={true}
-            width={SCREEN_WIDTH}
-            height={SCREEN_HEIGHT * 0.72}
-            data={posts}
-            scrollAnimationDuration={600}
-            onSnapToItem={(index) => {
-              if (index >= posts.length - 2 && hasMore) {
-                handleLoadMore();
-              }
-            }}
-            customAnimation={(value: number) => {
-              'worklet';
-              const translateY = interpolate(
-                value,
-                [-1, 0, 1],
-                [-SCREEN_HEIGHT * 0.38, 0, SCREEN_HEIGHT * 0.38]
-              );
-              const scale = interpolate(value, [-1, 0, 1], [0.82, 1, 0.82]);
-              const opacity = interpolate(value, [-1, 0, 1], [0.35, 1, 0.35]);
-              const rotateX = `${interpolate(value, [-1, 0, 1], [48, 0, -48])}deg`;
-
-              return {
-                transform: [{ translateY }, { scale }, { rotateX }],
-                opacity,
-              };
-            }}
-            renderItem={render3DPostItem}
-          />
-        </View>
-      )}
-
-      {isCreatingPost && (
-        <CreatePostScreen
-          onClose={() => setIsCreatingPost(false)}
-          onPostCreated={() => {
-            setIsCreatingPost(false);
-            loadPosts(0, true);
-          }}
-        />
-      )}
     </View>
   );
 };
@@ -190,56 +60,59 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#c9ccd1',
+    backgroundColor: theme.colors.background,
+    justifyContent: 'center',
+    padding: theme.spacing.md,
   },
-  createPostBar: {
-    backgroundColor: '#ffffff',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e4e6eb',
+  formContainer: {
+    backgroundColor: theme.colors.card,
+    padding: theme.spacing.lg,
+    borderRadius: 8,
+    ...theme.shadows.card,
   },
-  userAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#e4e6eb',
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: theme.colors.text,
+    textAlign: 'center',
+    marginBottom: theme.spacing.lg,
   },
-  createPostInput: {
-    flex: 1,
-    height: 38,
-    borderRadius: 20,
+  errorText: {
+    color: theme.colors.notification,
+    marginBottom: theme.spacing.sm,
+    textAlign: 'center',
+  },
+  successText: {
+    color: theme.colors.success,
+    marginBottom: theme.spacing.sm,
+    textAlign: 'center',
+  },
+  input: {
+    height: 50,
     borderWidth: 1,
-    borderColor: '#ced0d4',
-    justifyContent: 'center',
-    paddingHorizontal: 16,
-    marginHorizontal: 10,
-    backgroundColor: '#ffffff',
+    borderColor: theme.colors.border,
+    borderRadius: 6,
+    paddingHorizontal: theme.spacing.md,
+    marginBottom: theme.spacing.md,
+    fontSize: theme.typography.fontSizes.md,
+    color: theme.colors.text,
   },
-  createPostText: {
-    color: '#65676b',
-    fontSize: 15,
-  },
-  mediaIconBtn: {
-    padding: 4,
-  },
-  loaderContainer: {
-    flex: 1,
+  button: {
+    height: 50,
+    backgroundColor: theme.colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
+    borderRadius: 6,
+    marginBottom: theme.spacing.md,
   },
-  carouselWrapper: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+  buttonText: {
+    color: theme.colors.white,
+    fontSize: theme.typography.fontSizes.md,
+    fontWeight: 'bold',
   },
-  cardWrapper: {
-    width: SCREEN_WIDTH * 0.94,
-    height: SCREEN_HEIGHT * 0.68,
-    alignSelf: 'center',
-    borderRadius: 16,
-    overflow: 'hidden',
+  backLink: {
+    color: theme.colors.primary,
+    textAlign: 'center',
+    marginTop: theme.spacing.sm,
   },
 });
