@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../services/postService';
-import { FB_REACTIONS } from '../constants/reactions';
+import { FB_REACTIONS } from '../../constants/reactions';
 
 interface ReactionsModalProps {
   visible: boolean;
