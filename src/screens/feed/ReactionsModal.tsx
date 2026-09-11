@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../services/postService';
+import { FB_REACTIONS } from '../constants/reactions';
 
 interface ReactionsModalProps {
   visible: boolean;
@@ -33,16 +34,6 @@ interface ReactionTab {
   count: number;
 }
 
-const FB_REACTIONS: Record<string, { label: string; icon: string }> = {
-  like: { label: 'Like', icon: 'https://raw.githubusercontent.com/facebook/react-native/main/packages/rn-tester/js/assets/like.png' },
-  love: { label: 'Love', icon: 'https://images.rawpixel.com/image_png_800/2022/10/rm378-02a.png' },
-  care: { label: 'Care', icon: 'https://images.rawpixel.com/image_png_800/2022/10/rm378-02e.png' },
-  haha: { label: 'Haha', icon: 'https://images.rawpixel.com/image_png_800/2022/10/rm378-02b.png' },
-  wow: { label: 'Wow', icon: 'https://images.rawpixel.com/image_png_800/2022/10/rm378-02c.png' },
-  sad: { label: 'Sad', icon: 'https://images.rawpixel.com/image_png_800/2022/10/rm378-02d.png' },
-  angry: { label: 'Angry', icon: 'https://images.rawpixel.com/image_png_800/2022/10/rm378-02f.png' },
-};
-
 export const ReactionsModal: React.FC<ReactionsModalProps> = ({
   visible,
   postId,
@@ -62,7 +53,6 @@ export const ReactionsModal: React.FC<ReactionsModalProps> = ({
     }
   }, [visible, postId]);
 
-  // لائیکس ٹیبل کے الگ الگ کالمز سے کاؤنٹ نکالنے کا طریقہ
   const fetchReactionSummary = async () => {
     try {
       const { data, error } = await supabase
@@ -95,7 +85,9 @@ export const ReactionsModal: React.FC<ReactionsModalProps> = ({
           { type: 'all', label: `All ${totalReactions}`, count: totalReactions },
         ];
 
-        Object.keys(counts).forEach((key) => {
+        const sortedReactionTypes = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+
+        sortedReactionTypes.forEach((key) => {
           if (counts[key] > 0) {
             dynamicTabs.push({
               type: key,
@@ -110,7 +102,6 @@ export const ReactionsModal: React.FC<ReactionsModalProps> = ({
     } catch (e) {}
   };
 
-  // کالمز کی بنیاد پر یوزرز کا ڈیٹا نکالنے کا طریقہ
   const fetchUsers = async (filterType: string) => {
     setLoading(true);
     try {
@@ -252,100 +243,22 @@ export const ReactionsModal: React.FC<ReactionsModalProps> = ({
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#ffffff',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: 48,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f2f5',
-  },
-  backButton: {
-    padding: 4,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#050505',
-  },
-  tabContainer: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f2f5',
-  },
-  tabListContent: {
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    gap: 8,
-  },
-  tabButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#f0f2f5',
-    gap: 6,
-  },
-  activeTabButton: {
-    backgroundColor: '#e7f3ff',
-  },
-  tabIcon: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-  },
-  tabText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#65676b',
-  },
-  activeTabText: {
-    color: '#1877f2',
-  },
-  loaderContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  listContent: {
-    paddingVertical: 8,
-  },
-  userRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-  },
-  avatarWrapper: {
-    position: 'relative',
-    marginRight: 14,
-  },
-  avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#e4e6eb',
-  },
-  badgeIcon: {
-    position: 'absolute',
-    bottom: -2,
-    right: -2,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 1.5,
-    borderColor: '#ffffff',
-  },
-  userName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#050505',
-    flex: 1,
-  },
+  container: { flex: 1, backgroundColor: '#ffffff' },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 48, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#f0f2f5' },
+  backButton: { padding: 4 },
+  headerTitle: { fontSize: 18, fontWeight: '700', color: '#050505' },
+  tabContainer: { borderBottomWidth: 1, borderBottomColor: '#f0f2f5' },
+  tabListContent: { paddingHorizontal: 12, paddingVertical: 10, gap: 8 },
+  tabButton: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: '#f0f2f5', gap: 6 },
+  activeTabButton: { backgroundColor: '#e7f3ff' },
+  tabIcon: { width: 20, height: 20, borderRadius: 10 },
+  tabText: { fontSize: 14, fontWeight: '600', color: '#65676b' },
+  activeTabText: { color: '#1877f2' },
+  loaderContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  listContent: { paddingVertical: 8 },
+  userRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10 },
+  avatarWrapper: { position: 'relative', marginRight: 14 },
+  avatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#e4e6eb' },
+  badgeIcon: { position: 'absolute', bottom: -2, right: -2, width: 20, height: 20, borderRadius: 10, borderWidth: 1.5, borderColor: '#ffffff' },
+  userName: { fontSize: 16, fontWeight: '600', color: '#050505', flex: 1 },
 });
