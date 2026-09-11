@@ -53,6 +53,7 @@ export const ReactionsModal: React.FC<ReactionsModalProps> = ({
     }
   }, [visible, postId]);
 
+  // فیچ کریں تمام ری ایکشنز کی گنتی تاکہ فیس بک کی طرح ٹیبز بن سکیں
   const fetchReactionSummary = async () => {
     try {
       const { data, error } = await supabase
@@ -85,7 +86,9 @@ export const ReactionsModal: React.FC<ReactionsModalProps> = ({
           { type: 'all', label: `All ${totalReactions}`, count: totalReactions },
         ];
 
-        const sortedReactionTypes = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+        const sortedReactionTypes = Object.keys(counts).sort(
+          (a, b) => counts[b] - counts[a]
+        );
 
         sortedReactionTypes.forEach((key) => {
           if (counts[key] > 0) {
@@ -99,9 +102,12 @@ export const ReactionsModal: React.FC<ReactionsModalProps> = ({
 
         setTabs(dynamicTabs);
       }
-    } catch (e) {}
+    } catch (e) {
+      console.error("Error fetching reaction summary:", e);
+    }
   };
 
+  // یوزرز کی لسٹ اور ان کی پروفائل ڈیٹابیس سے نکالنا
   const fetchUsers = async (filterType: string) => {
     setLoading(true);
     try {
@@ -137,8 +143,8 @@ export const ReactionsModal: React.FC<ReactionsModalProps> = ({
           const meta = item.auth_users?.raw_user_meta_data || {};
           return {
             user_id: item.user_id,
-            full_name: meta.full_name || 'User',
-            avatar_url: meta.avatar_url || '',
+            full_name: meta.full_name || 'Facebook User',
+            avatar_url: meta.avatar_url || 'https://via.placeholder.com/150',
             reaction_type: rType,
           };
         });
@@ -146,6 +152,7 @@ export const ReactionsModal: React.FC<ReactionsModalProps> = ({
         setUsers(formattedUsers);
       }
     } catch (e) {
+      console.error("Error fetching reaction users:", e);
     } finally {
       setLoading(false);
     }
@@ -166,6 +173,7 @@ export const ReactionsModal: React.FC<ReactionsModalProps> = ({
   return (
     <Modal visible={visible} animationType="slide" transparent={false}>
       <View style={styles.container}>
+        {/* ہیڈر سیکشن */}
         <View style={styles.header}>
           <TouchableOpacity onPress={onClose} style={styles.backButton}>
             <Ionicons name="chevron-back" size={26} color="#050505" />
@@ -174,6 +182,7 @@ export const ReactionsModal: React.FC<ReactionsModalProps> = ({
           <View style={{ width: 26 }} />
         </View>
 
+        {/* فیس بک جیسے اوپر والے ٹیبز (All, Like, Love وغیرہ) */}
         <View style={styles.tabContainer}>
           <FlatList
             horizontal
@@ -201,6 +210,7 @@ export const ReactionsModal: React.FC<ReactionsModalProps> = ({
           />
         </View>
 
+        {/* لوڈنگ یا یوزرز کی لسٹ */}
         {loading ? (
           <View style={styles.loaderContainer}>
             <ActivityIndicator size="large" color="#1877f2" />
@@ -218,12 +228,7 @@ export const ReactionsModal: React.FC<ReactionsModalProps> = ({
                   activeOpacity={0.7}
                 >
                   <View style={styles.avatarWrapper}>
-                    <Image
-                      source={{
-                        uri: item.avatar_url || 'https://via.placeholder.com/150',
-                      }}
-                      style={styles.avatar}
-                    />
+                    <Image source={{ uri: item.avatar_url }} style={styles.avatar} />
                     {userReactionInfo && (
                       <Image source={{ uri: userReactionInfo.icon }} style={styles.badgeIcon} />
                     )}
@@ -244,21 +249,52 @@ export const ReactionsModal: React.FC<ReactionsModalProps> = ({
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#ffffff' },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 48, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#f0f2f5' },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 48,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f2f5',
+  },
   backButton: { padding: 4 },
   headerTitle: { fontSize: 18, fontWeight: '700', color: '#050505' },
   tabContainer: { borderBottomWidth: 1, borderBottomColor: '#f0f2f5' },
   tabListContent: { paddingHorizontal: 12, paddingVertical: 10, gap: 8 },
-  tabButton: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: '#f0f2f5', gap: 6 },
+  tabButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#f0f2f5',
+    gap: 6,
+  },
   activeTabButton: { backgroundColor: '#e7f3ff' },
   tabIcon: { width: 20, height: 20, borderRadius: 10 },
   tabText: { fontSize: 14, fontWeight: '600', color: '#65676b' },
   activeTabText: { color: '#1877f2' },
   loaderContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   listContent: { paddingVertical: 8 },
-  userRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10 },
+  userRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
   avatarWrapper: { position: 'relative', marginRight: 14 },
   avatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#e4e6eb' },
-  badgeIcon: { position: 'absolute', bottom: -2, right: -2, width: 20, height: 20, borderRadius: 10, borderWidth: 1.5, borderColor: '#ffffff' },
+  badgeIcon: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: '#ffffff',
+  },
   userName: { fontSize: 16, fontWeight: '600', color: '#050505', flex: 1 },
 });
