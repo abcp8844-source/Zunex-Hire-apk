@@ -16,7 +16,7 @@ import { EditPostScreen } from './EditPostScreen';
 import { MediaViewerScreen } from './MediaViewerScreen';
 import { ReactionsModal } from './ReactionsModal';
 import { deletePost, savePost, reportPost, sharePost } from '../../services/postService';
-import { FB_REACTIONS } from '../constants/reactions';
+import { FB_REACTIONS } from '../../constants/reactions';
 
 interface PostCardProps {
   post: any;
