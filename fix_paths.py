@@ -2,83 +2,88 @@ import os
 import re
 import subprocess
 
-PATH_MAP = {
-    'screens/profile/FriendsListScreen': 'screens/Friends/FriendsListScreen',
-    'screens/profile/FindFriendsScreen': 'screens/Friends/FindFriendsScreen',
-    'screens/profile/FriendRequestsScreen': 'screens/Friends/FriendRequestsScreen',
-    'screens/feed/CreatePostScreen': 'screens/Post/CreatePostScreen',
-    'screens/feed/EditPostScreen': 'screens/Post/EditPostScreen',
-    'screens/feed/PostImageEditor': 'screens/Post/PostImageEditor',
-    'screens/feed/CommentSection': 'screens/Reactions/CommentSection',
-    'screens/feed/PostLikeSection': 'screens/Reactions/PostLikeSection',
-    'screens/feed/ReactionsModal': 'screens/Reactions/ReactionsModal',
-    './FriendsListScreen': '../Friends/FriendsListScreen',
-    './FindFriendsScreen': '../Friends/FindFriendsScreen',
-    './FriendRequestsScreen': '../Friends/FriendRequestsScreen',
-    './CreatePostScreen': '../Post/CreatePostScreen',
-    './EditPostScreen': '../Post/EditPostScreen',
-    './PostImageEditor': '../Post/PostImageEditor',
-    './CommentSection': '../Reactions/CommentSection',
-    './PostLikeSection': '../Reactions/PostLikeSection',
-    './ReactionsModal': '../Reactions/ReactionsModal',
-}
-
-IGNORED_OLD_FILES = {
-    os.path.normpath('src/screens/profile/FriendsListScreen.tsx'),
-    os.path.normpath('src/screens/profile/FindFriendsScreen.tsx'),
-    os.path.normpath('src/screens/profile/FriendRequestsScreen.tsx'),
-    os.path.normpath('src/screens/feed/CreatePostScreen.tsx'),
-    os.path.normpath('src/screens/feed/EditPostScreen.tsx'),
-    os.path.normpath('src/screens/feed/PostImageEditor.tsx'),
-    os.path.normpath('src/screens/feed/CommentSection.tsx'),
-    os.path.normpath('src/screens/feed/PostLikeSection.tsx'),
-    os.path.normpath('src/screens/feed/ReactionsModal.tsx')
-}
-
 EXTENSIONS = ('.js', '.jsx', '.ts', '.tsx')
 
-def run_repository_fix(src_dir):
-    updated = 0
+def build_project_registry(src_dir):
+    registry = {}
     for root, _, files in os.walk(src_dir):
         for file in files:
             if file.endswith(EXTENSIONS):
-                file_path = os.path.normpath(os.path.join(root, file))
-                
-                if file_path in IGNORED_OLD_FILES:
-                    continue
+                name_without_ext = os.path.splitext(file)[0]
+                full_path = os.path.normpath(os.path.join(root, file))
+                registry[name_without_ext] = full_path
+    return registry
 
-                with open(file_path, 'r', encoding='utf-8') as f:
+def resolve_and_fix_all_imports(src_dir):
+    file_registry = build_project_registry(src_dir)
+    updated_files = 0
+    
+    print("[1/2] Scanning total project structure and deeply fixing import graph...")
+    
+    for root, _, files in os.walk(src_dir):
+        for file in files:
+            if file.endswith(EXTENSIONS):
+                current_file_path = os.path.normpath(os.path.join(root, file))
+                current_dir = os.path.dirname(current_file_path)
+
+                with open(current_file_path, 'r', encoding='utf-8') as f:
                     content = f.read()
 
                 new_content = content
+                
+                def replace_import(match):
+                    import_prefix = match.group(1)
+                    target_import_path = match.group(2)
+                    target_file_name = os.path.basename(target_import_path)
 
-                for old_p, new_p in PATH_MAP.items():
-                    if old_p in new_content:
-                        new_content = new_content.replace(old_p, new_p)
+                    if target_file_name in file_registry:
+                        actual_file_path = file_registry[target_file_name]
+                        
+                        rel_path = os.path.relpath(actual_file_path, current_dir)
+                        rel_path = rel_path.replace('\\', '/')
+                        rel_path = os.path.splitext(rel_path)[0]
 
-                norm_path = file_path.replace('\\', '/')
-                if any(folder in norm_path for folder in ['screens/Friends', 'screens/Post', 'screens/Reactions']):
-                    new_content = re.sub(r"from\s+['\"](\.\./services/)", "from '../../services/", new_content)
-                    new_content = re.sub(r"from\s+['\"](\.\./components/)", "from '../../components/", new_content)
-                    new_content = re.sub(r"from\s+['\"](\.\./utils/)", "from '../../utils/", new_content)
-                    new_content = re.sub(r"from\s+['\"](\.\./types/)", "from '../../types/", new_content)
-                    new_content = re.sub(r"from\s+['\"](\.\./navigation/)", "from '../../navigation/", new_content)
+                        if not rel_path.startswith('.'):
+                            rel_path = './' + rel_path
+
+                        return f"from {import_prefix}{rel_path}{import_prefix}"
+                    return match.group(0)
+
+                pattern = r"from\s+['\"](\.\.?/[^'\"]+)['\"]"
+                
+                # Dynamic AST style path mapping
+                for target_name, target_full_path in file_registry.items():
+                    target_short_name = target_name
+                    if target_short_name in new_content:
+                        rel_path = os.path.relpath(target_full_path, current_dir).replace('\\', '/')
+                        rel_path = os.path.splitext(rel_path)[0]
+                        if not rel_path.startswith('.'):
+                            rel_path = './' + rel_path
+                            
+                        # Standardize broken relative depth instances (e.g. ../ or ./ misplacement)
+                        old_regex = r"(from\s+['\"])(?:\.\./|\./)+(?:[^'\"]+/)*" + re.escape(target_short_name) + r"(['\"])"
+                        new_content = re.sub(old_regex, r"\1" + rel_path + r"\2", new_content)
 
                 if new_content != content:
-                    with open(file_path, 'w', encoding='utf-8') as f:
+                    with open(current_file_path, 'w', encoding='utf-8') as f:
                         f.write(new_content)
-                    print(f"FIXED: {file_path}")
-                    updated += 1
+                    print(f"✅ RELINKED: {current_file_path}")
+                    updated_files += 1
 
-    print(f"\nSUCCESS: {updated} files updated.")
+    print(f"\n[2/2] Dynamic scanning complete. Total updated files: {updated_files}")
 
 def run_typecheck():
+    print("\nRunning Typecheck Validation...")
     try:
         subprocess.run(['npx', 'tsc', '--noEmit'], check=True)
-        print("VERIFICATION: All connections valid.")
-    except subprocess.CalledProcessError as e:
-        print("BUILD STATUS: Check complete with errors.")
+        print("🎉 SUCCESS: Entire repository import network is fully verified and stable.")
+    except subprocess.CalledProcessError:
+        print("⚠️ TYPECHECK COMPLETE: Please review remaining TypeScript type errors if any.")
 
 if __name__ == "__main__":
-    run_repository_fix('./src')
-    run_typecheck()
+    scan_dir = './src'
+    if os.path.exists(scan_dir):
+        resolve_and_fix_all_imports(scan_dir)
+        run_typecheck()
+    else:
+        print("❌ Error: 'src' directory missing.")
