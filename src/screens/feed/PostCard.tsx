@@ -10,11 +10,11 @@ import {
   Share,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { PostLikeSection } from './PostLikeSection';
-import { CommentSection } from './CommentSection';
-import { EditPostScreen } from './EditPostScreen';
+import { PostLikeSection } from '../Reactions/PostLikeSection';
+import { CommentSection } from '../Reactions/CommentSection';
+import { EditPostScreen } from '../Post/EditPostScreen';
 import { MediaViewerScreen } from './MediaViewerScreen';
-import { ReactionsModal } from './ReactionsModal';
+import { ReactionsModal } from '../Reactions/ReactionsModal';
 import { deletePost, savePost, reportPost, sharePost } from '../../services/postService';
 import { FB_REACTIONS } from '../../constants/reactions';
 
