@@ -1,25 +1,33 @@
-name: Auto Fix Import Paths
+name: Relink Repository Imports
 
 on:
   workflow_dispatch:
 
-# اس سیکشن کے ذریعے GitHub Actions کو رائٹ (Write) کی اجازت ملتی ہے
 permissions:
   contents: write
 
 jobs:
-  fix-paths:
+  fix-and-verify:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout Repository
+      - name: Checkout Code
         uses: actions/checkout@v3
 
-      - name: Set up Python
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.x'
 
-      - name: Run Path Migration Script
+      - name: Execute Script
         run: python fix_paths.py
 
       - name: Commit & Push Changes
@@ -27,5 +35,5 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add .
-          git diff-index --quiet HEAD || git commit -m "Automated: Migrated import paths to new folders"
+          git diff-index --quiet HEAD || git commit -m "Automated: Relinked all imports to Friends, Post, Reactions"
           git push
