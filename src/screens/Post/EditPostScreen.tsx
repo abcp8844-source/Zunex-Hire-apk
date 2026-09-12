@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Modal, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { updatePost } from '../../services/postService';
-import { PostImageEditor } from '../Post/PostImageEditor';
+import { PostImageEditor } from '../feed/PostImageEditor';
 
 interface EditPostScreenProps {
   post: any;
