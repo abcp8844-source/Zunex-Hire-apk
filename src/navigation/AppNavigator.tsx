@@ -11,10 +11,10 @@ import { ProfileScreen } from '../screens/profile/ProfileScreen';
 import { EditProfileScreen } from '../screens/profile/EditProfileScreen';
 import { PersonalDetailsScreen } from '../screens/profile/PersonalDetailsScreen';
 import { UserAboutScreen } from '../screens/profile/UserAboutScreen';
-import { FriendsListScreen } from '../screens/profile/FriendsListScreen';
-import { FindFriendsScreen } from '../screens/profile/FindFriendsScreen';
+import { FriendsListScreen } from '../screens/Friends/FriendsListScreen';
+import { FindFriendsScreen } from '../screens/Friends/FindFriendsScreen';
 import { ProfilePhotosScreen } from '../screens/profile/ProfilePhotosScreen';
-import { FriendRequestsScreen } from '../screens/profile/FriendRequestsScreen';
+import { FriendRequestsScreen } from '../screens/Friends/FriendRequestsScreen';
 
 import { GroupDetailScreen } from '../screens/groups/GroupDetailScreen';
 import { CreateGroupScreen } from '../screens/groups/CreateGroupScreen';
@@ -32,7 +32,7 @@ import { HelpSupportScreen } from '../screens/menu/HelpSupportScreen';
 import { GlobalSearchScreen } from '../screens/interactions/GlobalSearchScreen';
 
 import { MediaViewerScreen } from '../screens/feed/MediaViewerScreen';
-import { EditPostScreen } from '../screens/feed/EditPostScreen';
+import { EditPostScreen } from '../screens/Post/EditPostScreen';
 
 const Stack = createNativeStackNavigator();
 
