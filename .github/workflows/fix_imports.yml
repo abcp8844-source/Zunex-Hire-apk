@@ -3,10 +3,13 @@ name: Auto Fix Import Paths
 on:
   workflow_dispatch:
 
+# اس سیکشن کے ذریعے GitHub Actions کو رائٹ (Write) کی اجازت ملتی ہے
+permissions:
+  contents: write
+
 jobs:
   fix-paths:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
