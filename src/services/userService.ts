@@ -21,6 +21,7 @@ export const getCurrentUserProfile = async () => {
   return await fetchUserProfile();
 };
 
+// دونوں نام رکھ دیے گئے ہیں تاکہ یو آئی (UI) میں کوئی پرانی یا نئی کال فیل نہ ہو
 export const updateProfile = async (updates: any) => {
   const user = (await supabase.auth.getUser()).data.user;
   if (!user) return null;
@@ -34,6 +35,10 @@ export const updateProfile = async (updates: any) => {
 
   if (error) throw error;
   return data;
+};
+
+export const updateUserProfile = async (updates: any) => {
+  return await updateProfile(updates);
 };
 
 export const searchUsers = async (query: string, limit: number = 20) => {
