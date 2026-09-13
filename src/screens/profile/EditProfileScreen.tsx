@@ -1,22 +1,40 @@
 import { Loader } from '../../components/Loader';
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, Modal, TextInput, SafeAreaView, Platform, StatusBar } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Image,
+  Alert,
+  TextInput,
+  SafeAreaView,
+  Dimensions,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../theme';
 import { fetchUserProfile, updateUserProfile } from '../../services/userService';
 
 interface EditProfileScreenProps {
   navigation: any;
 }
 
+const { width } = Dimensions.get('window');
+const COVER_ASPECT_RATIO = 16 / 9;
+
 export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({ navigation }) => {
   const [loading, setLoading] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
-  const [profile, setProfile] = useState<any>({});
-  
-  const [modalVisible, setModalVisible] = useState<boolean>(false);
-  const [editingField, setEditingField] = useState<string>('');
-  const [inputValue, setInputValue] = useState<string>('');
+
+  // Profile Form States
+  const [fullName, setFullName] = useState<string>('');
+  const [username, setUsername] = useState<string>('');
+  const [bio, setBio] = useState<string>('');
+  const [website, setWebsite] = useState<string>('');
+  const [email, setEmail] = useState<string>('');
+  const [phone, setPhone] = useState<string>('');
+  const [avatarUrl, setAvatarUrl] = useState<string>('');
+  const [coverUrl, setCoverUrl] = useState<string>('');
 
   useEffect(() => {
     loadData();
@@ -27,7 +45,14 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({ navigation
       setLoading(true);
       const data = await fetchUserProfile();
       if (data) {
-        setProfile(data);
+        setFullName(data.full_name || '');
+        setUsername(data.username || '');
+        setBio(data.bio || '');
+        setWebsite(data.website || '');
+        setEmail(data.email || '');
+        setPhone(data.phone || '');
+        setAvatarUrl(data.avatar_url || '');
+        setCoverUrl(data.cover_url || '');
       }
     } catch (error) {
       Alert.alert('Error', 'Failed to load profile details.');
@@ -36,21 +61,25 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({ navigation
     }
   };
 
-  const handleEditPress = (fieldKey: string, currentValue: string) => {
-    setEditingField(fieldKey);
-    setInputValue(currentValue || '');
-    setModalVisible(true);
-  };
-
-  const handleSaveField = async () => {
+  const handleSaveAll = async () => {
     try {
       setSaving(true);
-      const updatedData = { ...profile, [editingField]: inputValue };
-      await updateUserProfile(updatedData);
-      setProfile(updatedData);
-      setModalVisible(false);
+      const updatedProfile = {
+        full_name: fullName,
+        username: username,
+        bio: bio,
+        website: website,
+        email: email,
+        phone: phone,
+        avatar_url: avatarUrl,
+        cover_url: coverUrl,
+      };
+
+      await updateUserProfile(updatedProfile);
+      Alert.alert('Success', 'Profile updated successfully.');
+      navigation.goBack();
     } catch (error) {
-      Alert.alert('Error', 'Failed to update field.');
+      Alert.alert('Error', 'Failed to save profile updates.');
     } finally {
       setSaving(false);
     }
@@ -58,212 +87,143 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({ navigation
 
   if (loading) {
     return (
-      <View style={styles.loaderContainer}>
-        <Loader />
-      </View>
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.loaderContainer}>
+          <Loader />
+        </View>
+      </SafeAreaView>
     );
   }
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        {/* Fixed Header */}
+        {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color="#050505" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Edit Profile</Text>
-          <View style={{ width: 24 }} />
+          <TouchableOpacity onPress={handleSaveAll} disabled={saving} style={styles.saveHeaderBtn}>
+            {saving ? (
+              <Loader />
+            ) : (
+              <Text style={styles.saveHeaderBtnText}>Save</Text>
+            )}
+          </TouchableOpacity>
         </View>
 
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-          {/* Cover & Profile Header */}
+          {/* Images Section */}
           <View style={styles.imagesSection}>
+            {/* Cover Photo - 16:9 Aspect Ratio */}
             <View style={styles.coverContainer}>
-              <Image
-                source={{ uri: profile?.cover_url || 'https://via.placeholder.com/800x400' }}
-                style={styles.coverImage}
-              />
+              {coverUrl ? (
+                <Image source={{ uri: coverUrl }} style={styles.coverImage} resizeMode="cover" />
+              ) : (
+                <View style={styles.defaultCoverPlaceholder}>
+                  <Ionicons name="image-outline" size={32} color="#8a8d91" />
+                </View>
+              )}
+              <TouchableOpacity style={styles.editCoverBadge} activeOpacity={0.8}>
+                <Ionicons name="camera" size={16} color="#ffffff" />
+              </TouchableOpacity>
             </View>
-            <View style={styles.profileInfoRow}>
+
+            {/* Profile Photo - Round WhatsApp Style */}
+            <View style={styles.avatarWrapper}>
               <View style={styles.avatarContainer}>
-                <Image
-                  source={{ uri: profile?.avatar_url || 'https://via.placeholder.com/150' }}
-                  style={styles.avatarImage}
-                />
+                {avatarUrl ? (
+                  <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
+                ) : (
+                  <View style={styles.defaultAvatarPlaceholder}>
+                    <Ionicons name="person" size={36} color="#1c2b33" />
+                  </View>
+                )}
               </View>
-              <View style={styles.nameContainer}>
-                <Text style={styles.profileName}>{profile?.full_name || 'User Profile'}</Text>
-                <Text style={styles.profileSubText}>Public profile info</Text>
-              </View>
+              <TouchableOpacity style={styles.editAvatarBadge} activeOpacity={0.8}>
+                <Ionicons name="camera" size={14} color="#ffffff" />
+              </TouchableOpacity>
             </View>
           </View>
 
-          {/* Section: Bio */}
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>About You</Text>
-          </View>
-
-          <TouchableOpacity 
-            style={styles.itemRow} 
-            onPress={() => handleEditPress('bio', profile?.bio)}
-          >
-            <View style={styles.rowLeft}>
-              <View style={styles.iconWrapper}>
-                <Ionicons name="information" size={18} color="#1877f2" />
-              </View>
-              <View style={styles.textContainer}>
-                <Text style={styles.itemLabel}>Bio</Text>
-                <Text style={styles.itemValue}>{profile?.bio || 'Add a short bio'}</Text>
-              </View>
-            </View>
-            <View style={styles.editBadge}>
-              <Ionicons name="create-outline" size={16} color="#1877f2" />
-              <Text style={styles.editText}>Edit</Text>
-            </View>
-          </TouchableOpacity>
-
-          {/* Section: Contact & Links */}
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Contact & Links</Text>
-          </View>
-
-          <TouchableOpacity 
-            style={styles.itemRow}
-            onPress={() => handleEditPress('website', profile?.website)}
-          >
-            <View style={styles.rowLeft}>
-              <View style={styles.iconWrapper}>
-                <Ionicons name="link" size={18} color="#1877f2" />
-              </View>
-              <View style={styles.textContainer}>
-                <Text style={styles.itemLabel}>Website</Text>
-                <Text style={styles.itemValue}>{profile?.website || 'Add website link'}</Text>
-              </View>
-            </View>
-            <View style={styles.editBadge}>
-              <Ionicons name="create-outline" size={16} color="#1877f2" />
-              <Text style={styles.editText}>Edit</Text>
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={styles.itemRow}
-            onPress={() => handleEditPress('email', profile?.email)}
-          >
-            <View style={styles.rowLeft}>
-              <View style={styles.iconWrapper}>
-                <Ionicons name="mail" size={18} color="#1877f2" />
-              </View>
-              <View style={styles.textContainer}>
-                <Text style={styles.itemLabel}>Email</Text>
-                <Text style={styles.itemValue}>{profile?.email || 'Add email address'}</Text>
-              </View>
-            </View>
-            <View style={styles.editBadge}>
-              <Ionicons name="create-outline" size={16} color="#1877f2" />
-              <Text style={styles.editText}>Edit</Text>
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={styles.itemRow}
-            onPress={() => handleEditPress('phone', profile?.phone)}
-          >
-            <View style={styles.rowLeft}>
-              <View style={styles.iconWrapper}>
-                <Ionicons name="call" size={18} color="#1877f2" />
-              </View>
-              <View style={styles.textContainer}>
-                <Text style={styles.itemLabel}>Phone</Text>
-                <Text style={styles.itemValue}>{profile?.phone || 'Add phone number'}</Text>
-              </View>
-            </View>
-            <View style={styles.editBadge}>
-              <Ionicons name="create-outline" size={16} color="#1877f2" />
-              <Text style={styles.editText}>Edit</Text>
-            </View>
-          </TouchableOpacity>
-
-          {/* Section: Personal Details */}
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Personal Details</Text>
-          </View>
-
-          <TouchableOpacity 
-            style={styles.itemRow} 
-            onPress={() => handleEditPress('current_city', profile?.current_city)}
-          >
-            <View style={styles.rowLeft}>
-              <View style={styles.iconWrapper}>
-                <Ionicons name="location" size={18} color="#1877f2" />
-              </View>
-              <View style={styles.textContainer}>
-                <Text style={styles.itemLabel}>Current City</Text>
-                <Text style={styles.itemValue}>{profile?.current_city || 'Add current city'}</Text>
-              </View>
-            </View>
-            <View style={styles.editBadge}>
-              <Ionicons name="create-outline" size={16} color="#1877f2" />
-              <Text style={styles.editText}>Edit</Text>
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={styles.itemRow} 
-            onPress={() => handleEditPress('dob', profile?.dob)}
-          >
-            <View style={styles.rowLeft}>
-              <View style={styles.iconWrapper}>
-                <Ionicons name="calendar" size={18} color="#1877f2" />
-              </View>
-              <View style={styles.textContainer}>
-                <Text style={styles.itemLabel}>Birthday</Text>
-                <Text style={styles.itemValue}>{profile?.dob || 'Add birthday'}</Text>
-              </View>
-            </View>
-            <View style={styles.editBadge}>
-              <Ionicons name="create-outline" size={16} color="#1877f2" />
-              <Text style={styles.editText}>Edit</Text>
-            </View>
-          </TouchableOpacity>
-        </ScrollView>
-
-        {/* Edit Modal */}
-        <Modal visible={modalVisible} transparent animationType="fade">
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContainer}>
-              <Text style={styles.modalTitle}>Update Information</Text>
+          {/* Form Inputs */}
+          <View style={styles.formCard}>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Full Name</Text>
               <TextInput
-                style={styles.modalInput}
-                value={inputValue}
-                onChangeText={setInputValue}
-                placeholder="Enter details..."
-                placeholderTextColor="#999"
-                autoFocus
+                style={styles.input}
+                value={fullName}
+                onChangeText={setFullName}
+                placeholder="Enter full name"
+                placeholderTextColor="#8a8d91"
               />
-              <View style={styles.modalActions}>
-                <TouchableOpacity 
-                  style={styles.cancelBtn} 
-                  onPress={() => setModalVisible(false)}
-                >
-                  <Text style={styles.cancelBtnText}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={styles.saveBtn} 
-                  onPress={handleSaveField}
-                  disabled={saving}
-                >
-                  {saving ? (
-                    <Loader />
-                  ) : (
-                    <Text style={styles.saveBtnText}>Save</Text>
-                  )}
-                </TouchableOpacity>
-              </View>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Username</Text>
+              <TextInput
+                style={styles.input}
+                value={username}
+                onChangeText={setUsername}
+                placeholder="Enter username"
+                placeholderTextColor="#8a8d91"
+                autoCapitalize="none"
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Bio</Text>
+              <TextInput
+                style={[styles.input, styles.bioInput]}
+                value={bio}
+                onChangeText={setBio}
+                placeholder="Write a short bio..."
+                placeholderTextColor="#8a8d91"
+                multiline
+                numberOfLines={3}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Website</Text>
+              <TextInput
+                style={styles.input}
+                value={website}
+                onChangeText={setWebsite}
+                placeholder="https://yourwebsite.com"
+                placeholderTextColor="#8a8d91"
+                autoCapitalize="none"
+                keyboardType="url"
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Email Address</Text>
+              <TextInput
+                style={styles.input}
+                value={email}
+                onChangeText={setEmail}
+                placeholder="Enter email address"
+                placeholderTextColor="#8a8d91"
+                autoCapitalize="none"
+                keyboardType="email-address"
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Phone Number (Optional)</Text>
+              <TextInput
+                style={styles.input}
+                value={phone}
+                onChangeText={setPhone}
+                placeholder="Enter phone number"
+                placeholderTextColor="#8a8d91"
+                keyboardType="phone-pad"
+              />
             </View>
           </View>
-        </Modal>
+        </ScrollView>
       </View>
     </SafeAreaView>
   );
@@ -301,6 +261,17 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#050505',
   },
+  saveHeaderBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: '#1877f2',
+    borderRadius: 6,
+  },
+  saveHeaderBtnText: {
+    color: '#ffffff',
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
   scrollContent: {
     paddingBottom: 30,
   },
@@ -309,163 +280,108 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#e4e6eb',
-    paddingBottom: 16,
+    paddingBottom: 20,
   },
   coverContainer: {
-    height: 140,
+    width: width,
+    height: width / COVER_ASPECT_RATIO,
     backgroundColor: '#e4e6eb',
-    width: '100%',
+    position: 'relative',
   },
   coverImage: {
     width: '100%',
     height: '100%',
   },
-  profileInfoRow: {
-    flexDirection: 'row',
+  defaultCoverPlaceholder: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    marginTop: -30,
+    backgroundColor: '#e4e6eb',
+  },
+  editCoverBadge: {
+    position: 'absolute',
+    bottom: 12,
+    right: 12,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarWrapper: {
+    marginTop: -40,
+    marginLeft: 16,
+    alignSelf: 'flex-start',
+    position: 'relative',
   },
   avatarContainer: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     borderWidth: 3,
     borderColor: '#ffffff',
     backgroundColor: '#ffffff',
     overflow: 'hidden',
-    elevation: 2,
+    elevation: 3,
   },
   avatarImage: {
     width: '100%',
     height: '100%',
+    borderRadius: 40,
   },
-  nameContainer: {
-    marginLeft: 12,
-    marginTop: 25,
-  },
-  profileName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#050505',
-  },
-  profileSubText: {
-    fontSize: 12,
-    color: '#65676b',
-  },
-  sectionHeader: {
-    paddingHorizontal: 16,
-    paddingTop: 14,
-    paddingBottom: 6,
-  },
-  sectionTitle: {
-    fontSize: 13,
-    fontWeight: 'bold',
-    color: '#65676b',
-    textTransform: 'uppercase',
-  },
-  itemRow: {
-    flexDirection: 'row',
+  defaultAvatarPlaceholder: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 40,
+    backgroundColor: '#e4e6eb',
+    justifyContent: 'center',
     alignItems: 'center',
-    justifyContent: 'space-between',
+  },
+  editAvatarBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: '#1877f2',
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: '#ffffff',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  formCard: {
     backgroundColor: '#ffffff',
-    paddingVertical: 12,
     paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f2f5',
+    borderColor: '#e4e6eb',
   },
-  rowLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    marginRight: 10,
+  inputGroup: {
+    marginBottom: 16,
   },
-  iconWrapper: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#e7f3ff',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  textContainer: {
-    flex: 1,
-  },
-  itemLabel: {
-    fontSize: 12,
-    color: '#65676b',
-    fontWeight: '500',
-  },
-  itemValue: {
-    fontSize: 15,
-    color: '#050505',
-    marginTop: 1,
-  },
-  editBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#e7f3ff',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  editText: {
+  label: {
     fontSize: 13,
-    fontWeight: '600',
-    color: '#1877f2',
-    marginLeft: 4,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContainer: {
-    width: '85%',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 20,
-    elevation: 5,
-  },
-  modalTitle: {
-    fontSize: 16,
     fontWeight: 'bold',
-    marginBottom: 12,
-    color: '#050505',
+    color: '#65676b',
+    marginBottom: 6,
   },
-  modalInput: {
-    borderWidth: 1,
-    borderColor: '#ccd0d5',
+  input: {
+    backgroundColor: '#f0f2f5',
     borderRadius: 8,
     paddingHorizontal: 12,
     height: 44,
-    marginBottom: 20,
-    color: '#000',
-    backgroundColor: '#f5f6f7',
+    fontSize: 15,
+    color: '#050505',
+    borderWidth: 1,
+    borderColor: '#e4e6eb',
   },
-  modalActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-  },
-  cancelBtn: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    marginRight: 8,
-  },
-  cancelBtnText: {
-    color: '#65676b',
-    fontWeight: '600',
-  },
-  saveBtn: {
-    backgroundColor: '#1877f2',
-    paddingVertical: 8,
-    paddingHorizontal: 20,
-    borderRadius: 6,
-  },
-  saveBtnText: {
-    color: '#fff',
-    fontWeight: 'bold',
+  bioInput: {
+    height: 80,
+    paddingTop: 10,
+    textAlignVertical: 'top',
   },
 });
