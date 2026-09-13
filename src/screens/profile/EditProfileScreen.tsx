@@ -196,7 +196,7 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({ navigation
 
           <View style={styles.formCard}>
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Full Name</Text>
+              <Text style={styles.label}>Full name</Text>
               <TextInput
                 style={styles.input}
                 value={fullName}
@@ -219,7 +219,7 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({ navigation
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Bio</Text>
+              <Text style={styles.label}>bio</Text>
               <TextInput
                 style={[styles.input, styles.bioInput]}
                 value={bio}
