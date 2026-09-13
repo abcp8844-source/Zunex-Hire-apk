@@ -1,171 +1,72 @@
 import os
 import re
 import json
-import subprocess
-from supabase import create_client
 
 EXTENSIONS = ('.js', '.jsx', '.ts', '.tsx')
 
-def get_supabase_client():
-    url = os.environ.get("SUPABASE_URL")
-    key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or os.environ.get("SUPABASE_ANON_KEY")
-    if not url or not key:
-        raise ValueError("Missing SUPABASE_URL or Supabase Key environment variables.")
-    return create_client(url, key)
+TABLE_USAGE_PATTERN = re.compile(
+    r"(?:from|into|update|join|table)\s*[\(\'\"]([a-zA-Z0-9_]+)[\'\"]|"
+    r"\.from\(['\"]([a-zA-Z0-9_]+)['\"]\)", 
+    re.IGNORECASE
+)
 
-def fix_imports_and_routing(src_dir):
-    if not os.path.exists(src_dir):
-        return 0
+OPERATION_PATTERNS = {
+    "READ (Incoming)": re.compile(r"\b(select|fetch|get|find|read)\b", re.IGNORECASE),
+    "WRITE (Outgoing)": re.compile(r"\b(insert|update|upsert|delete|post|put|patch)\b", re.IGNORECASE)
+}
 
-    registry = {}
-    for root, _, files in os.walk(src_dir):
-        for file in files:
-            if file.endswith(EXTENSIONS):
-                name = os.path.splitext(file)[0]
-                registry[name] = os.path.normpath(os.path.join(root, file))
+COLUMN_PATTERN = re.compile(r'\b([a-z0-9_]+(?:_id|_name|_url|_city|_at|_by|full_name|username|bio|website|email|phone|current_city|avatar_url|cover_url))\b', re.IGNORECASE)
 
-    updated_files = 0
-    for root, _, files in os.walk(src_dir):
-        for file in files:
-            if file.endswith(EXTENSIONS):
-                current_file = os.path.normpath(os.path.join(root, file))
-                current_dir = os.path.dirname(current_file)
-
-                with open(current_file, 'r', encoding='utf-8', errors='ignore') as f:
-                    content = f.read()
-
-                new_content = content
-                for target_name, target_path in registry.items():
-                    if target_name in new_content:
-                        rel_path = os.path.relpath(target_path, current_dir).replace('\\', '/')
-                        rel_path = os.path.splitext(rel_path)[0]
-                        if not rel_path.startswith('.'):
-                            rel_path = './' + rel_path
-                        
-                        pattern = r"(from\s+['\"])(?:\.\./|\./)+(?:[^'\"]+/)*" + re.escape(target_name) + r"(['\"])"
-                        new_content = re.sub(pattern, r"\1" + rel_path + r"\2", new_content)
-
-                if new_content != content:
-                    with open(current_file, 'w', encoding='utf-8') as f:
-                        f.write(new_content)
-                    updated_files += 1
-
-    return updated_files
-
-def fetch_dynamic_database_schema(supabase):
-    db_schema = {}
+def audit_file_data_flow(file_path):
     try:
-        query = """
-            SELECT table_name 
-            FROM information_schema.tables 
-            WHERE table_schema = 'public' 
-            AND table_type = 'BASE TABLE';
-        """
-        res = supabase.rpc('execute_sql', {'sql': query}).execute()
-        tables = [row['table_name'] for row in res.data] if res.data else []
+        with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+            content = f.read()
+
+        tables_found = set()
+        for match in TABLE_USAGE_PATTERN.findall(content):
+            table = match[0] or match[1]
+            if table:
+                tables_found.add(table)
+
+        columns_found = sorted(list(set(COLUMN_PATTERN.findall(content))))
+
+        operations_found = []
+        for op_type, pattern in OPERATION_PATTERNS.items():
+            if pattern.search(content):
+                operations_found.append(op_type)
+
+        if tables_found or columns_found:
+            return {
+                "tables_accessed": sorted(list(tables_found)),
+                "data_direction": operations_found if operations_found else ["UNKNOWN/INTERNAL"],
+                "columns_referenced": columns_found
+            }
     except Exception:
-        tables = []
+        pass
+    return None
 
-    if not tables:
-        fallback_tables = [
-            "profiles", "groups", "posts", "likes", "comments", "notifications",
-            "messages", "friends", "followers", "stories", "saved_posts",
-            "reports", "settings", "activities", "reactions"
-        ]
-        for t in fallback_tables:
-            try:
-                probe = supabase.table(t).select("*").limit(1).execute()
-                tables.append(t)
-            except Exception:
-                pass
-
-    for table in tables:
-        try:
-            res = supabase.table(table).select("*").limit(1).execute()
-            columns = list(res.data[0].keys()) if res.data else []
-            db_schema[table] = columns
-        except Exception:
-            db_schema[table] = []
-
-    return db_schema
-
-def align_frontend_calls_with_db(src_dir, db_schema):
+def run_read_only_data_audit(src_dir="./src"):
     if not os.path.exists(src_dir):
-        return 0
+        print(json.dumps({"error": f"Directory '{src_dir}' not found."}, indent=2))
+        return
 
-    modified_count = 0
+    audit_logs = {
+        "audit_type": "READ_ONLY_DATA_FLOW_LOGS",
+        "target_directory": src_dir,
+        "files_with_data_flow": {}
+    }
+
     for root, _, files in os.walk(src_dir):
         for file in files:
             if file.endswith(EXTENSIONS):
                 file_path = os.path.join(root, file)
-                with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                    content = f.read()
+                rel_path = os.path.relpath(file_path, src_dir).replace('\\', '/')
+                
+                file_analysis = audit_file_data_flow(file_path)
+                if file_analysis:
+                    audit_logs["files_with_data_flow"][rel_path] = file_analysis
 
-                new_content = content
-                for table in db_schema.keys():
-                    table_pattern = re.compile(rf"supabase\.from\(['\"]({re.escape(table)})['\"]\)", re.IGNORECASE)
-                    new_content = table_pattern.sub(f"supabase.from('{table}')", new_content)
-
-                if new_content != content:
-                    with open(file_path, 'w', encoding='utf-8') as f:
-                        f.write(new_content)
-                    modified_count += 1
-
-    return modified_count
-
-def run_deep_pipeline_audit():
-    src_dir = './src'
-    audit_report = {
-        "status": "PROCESSING",
-        "fixed_imports_count": 0,
-        "aligned_files_count": 0,
-        "auth_and_connection": False,
-        "discovered_tables": [],
-        "table_read_access": {},
-        "data_flow_blockers": []
-    }
-
-    audit_report["fixed_imports_count"] = fix_imports_and_routing(src_dir)
-
-    try:
-        supabase = get_supabase_client()
-        audit_report["auth_and_connection"] = True
-    except Exception as e:
-        audit_report["data_flow_blockers"].append(f"Connection/Auth Failure: {str(e)}")
-        audit_report["status"] = "FAILED"
-        print(json.dumps(audit_report, indent=2))
-        return
-
-    db_schema = fetch_dynamic_database_schema(supabase)
-    audit_report["discovered_tables"] = list(db_schema.keys())
-
-    for table, columns in db_schema.items():
-        try:
-            audit_report["table_read_access"][table] = {
-                "accessible": True,
-                "columns": columns
-            }
-        except Exception as e:
-            audit_report["table_read_access"][table] = {
-                "accessible": False,
-                "error": str(e)
-            }
-            audit_report["data_flow_blockers"].append(f"Table Blockage in '{table}': {str(e)}")
-
-    if db_schema:
-        audit_report["aligned_files_count"] = align_frontend_calls_with_db(src_dir, db_schema)
-
-    try:
-        subprocess.run(['npx', 'tsc', '--noEmit'], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    except Exception:
-        pass
-
-    if not audit_report["data_flow_blockers"]:
-        audit_report["status"] = "SUCCESS: Pipeline Fully Verified and Repaired"
-    else:
-        audit_report["status"] = "SUCCESS WITH WARNINGS"
-
-    print(json.dumps(audit_report, indent=2))
+    print(json.dumps(audit_logs, indent=2))
 
 if __name__ == "__main__":
-    run_deep_pipeline_audit()
+    run_read_only_data_audit()
