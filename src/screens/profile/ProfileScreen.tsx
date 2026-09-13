@@ -1,7 +1,18 @@
-import { Loader } from '../../components/Loader';
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, RefreshControl, Image, SafeAreaView, Dimensions } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+  Alert,
+  RefreshControl,
+  Image,
+  SafeAreaView,
+  Dimensions,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Loader } from '../../components/Loader';
 import { Header } from '../../components/Header';
 import { fetchUserProfile, fetchUserPosts } from '../../services/userService';
 import { PostCard } from '../feed/PostCard';
@@ -109,21 +120,12 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
 
         <View style={styles.actionButtonsRow}>
           <TouchableOpacity
-            style={styles.primaryBtn}
-            onPress={() => navigation.navigate('CreatePost')}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="add-circle-outline" size={18} color="#ffffff" style={styles.btnIcon} />
-            <Text style={styles.primaryBtnText}>Add post</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.secondaryBtn}
+            style={styles.editProfileBtn}
             onPress={() => navigation.navigate('EditProfile')}
             activeOpacity={0.8}
           >
             <Ionicons name="create-outline" size={18} color="#050505" style={styles.btnIcon} />
-            <Text style={styles.secondaryBtnText}>Edit profile</Text>
+            <Text style={styles.editProfileBtnText}>Edit profile</Text>
           </TouchableOpacity>
         </View>
 
@@ -149,25 +151,6 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
             )}
           </View>
         )}
-
-        <View style={styles.createPostBox}>
-          {profile?.avatar_url ? (
-            <Image source={{ uri: profile.avatar_url }} style={styles.smallAvatar} />
-          ) : (
-            <View style={styles.defaultSmallAvatarPlaceholder}>
-              <Ionicons name="person" size={18} color="#1c2b33" />
-            </View>
-          )}
-          <TouchableOpacity
-            style={styles.postInputPlaceholder}
-            onPress={() => navigation.navigate('CreatePost')}
-          >
-            <Text style={styles.placeholderText}>What's on your mind?</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => navigation.navigate('CreatePost')}>
-            <Ionicons name="images-outline" size={22} color="#45bd62" />
-          </TouchableOpacity>
-        </View>
       </View>
     </View>
   );
@@ -312,25 +295,9 @@ const styles = StyleSheet.create({
   },
   actionButtonsRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     marginBottom: 16,
   },
-  primaryBtn: {
-    flex: 1,
-    backgroundColor: '#1877f2',
-    height: 38,
-    borderRadius: 8,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 6,
-  },
-  primaryBtnText: {
-    color: '#ffffff',
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
-  secondaryBtn: {
+  editProfileBtn: {
     flex: 1,
     backgroundColor: '#e4e6eb',
     height: 38,
@@ -338,9 +305,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: 6,
   },
-  secondaryBtnText: {
+  editProfileBtnText: {
     color: '#050505',
     fontWeight: 'bold',
     fontSize: 14,
@@ -352,7 +318,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#f7f8fa',
     borderRadius: 10,
     padding: 12,
-    marginBottom: 16,
   },
   infoRow: {
     flexDirection: 'row',
@@ -371,42 +336,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#1877f2',
     flex: 1,
-  },
-  createPostBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#ffffff',
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#f0f2f5',
-  },
-  smallAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    marginRight: 10,
-  },
-  defaultSmallAvatarPlaceholder: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#e4e6eb',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 10,
-  },
-  postInputPlaceholder: {
-    flex: 1,
-    backgroundColor: '#f0f2f5',
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
-    paddingHorizontal: 14,
-    marginRight: 10,
-  },
-  placeholderText: {
-    color: '#65676b',
-    fontSize: 14,
   },
   footerLoader: {
     paddingVertical: 16,
