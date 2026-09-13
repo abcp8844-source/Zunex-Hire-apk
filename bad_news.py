@@ -1,7 +1,7 @@
 import os
 import re
 import json
-import psycopg2
+from supabase import create_client
 
 EXTENSIONS = ('.js', '.jsx', '.ts', '.tsx')
 
@@ -68,7 +68,7 @@ MASTER_TABLES_SCHEMA = {
         "id UUID PRIMARY KEY DEFAULT gen_random_uuid()",
         "post_id UUID NOT NULL",
         "user_id UUID NOT NULL",
-        "reaction_type TEXT DEFAULT 'like'",  # like, love, care, haha, wow, sad, angry
+        "reaction_type TEXT DEFAULT 'like'",
         "created_at TIMESTAMPTZ DEFAULT NOW()"
     ],
     "shares": [
@@ -117,13 +117,12 @@ MASTER_TABLES_SCHEMA = {
     ]
 }
 
-def get_db_connection():
-    db_url = os.environ.get("DATABASE_URL")
-    if not db_url:
-        raise ValueError("Missing DATABASE_URL environment variable.")
-    conn = psycopg2.connect(db_url)
-    conn.autocommit = True
-    return conn
+def get_supabase_client():
+    url = os.environ.get("SUPABASE_URL")
+    key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or os.environ.get("SUPABASE_ANON_KEY")
+    if not url or not key:
+        raise ValueError("Missing SUPABASE_URL or Supabase Key environment variables.")
+    return create_client(url, key)
 
 def fix_frontend_repository_code(src_dir="./src"):
     modified_files = 0
@@ -156,21 +155,19 @@ def fix_frontend_repository_code(src_dir="./src"):
                     pass
     return modified_files
 
-def create_database_schema(conn):
+def create_database_schema(supabase):
     created_tables = []
     errors = []
-    cursor = conn.cursor()
 
     for table, schema_cols in MASTER_TABLES_SCHEMA.items():
         try:
             cols_def = ", ".join(schema_cols)
-            create_sql = f"CREATE TABLE IF NOT EXISTS public.{table} ({cols_def});"
-            cursor.execute(create_sql)
+            create_sql = f"CREATE TABLE public.{table} ({cols_def});"
+            supabase.rpc('exec_sql', {'sql': create_sql}).execute()
             created_tables.append(table)
         except Exception as e:
             errors.append(f"Create Table Error [{table}]: {str(e)}")
 
-    cursor.close()
     return created_tables, errors
 
 def run_clean_rebuild_pipeline():
@@ -186,7 +183,7 @@ def run_clean_rebuild_pipeline():
     report["frontend_fixed_files"] = fix_frontend_repository_code(src_dir)
 
     try:
-        conn = get_db_connection()
+        supabase = get_supabase_client()
         report["database_connection"] = True
     except Exception as e:
         report["pipeline_status"] = "FAILED: DATABASE AUTH ERROR"
@@ -194,9 +191,7 @@ def run_clean_rebuild_pipeline():
         print(json.dumps(report, indent=2))
         return
 
-    created, errors = create_database_schema(conn)
-    conn.close()
-
+    created, errors = create_database_schema(supabase)
     report["created_tables"] = created
     report["errors"] = errors
 
