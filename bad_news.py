@@ -1,7 +1,8 @@
 import os
 import re
 import json
-from supabase import create_client
+import psycopg2
+from urllib.parse import urlparse
 
 EXTENSIONS = ('.js', '.jsx', '.ts', '.tsx')
 
@@ -116,103 +117,51 @@ MASTER_TABLES_SCHEMA = {
     ]
 }
 
-def get_supabase_client():
-    url = os.environ.get("SUPABASE_URL")
-    key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or os.environ.get("SUPABASE_ANON_KEY")
-    if not url or not key:
-        raise ValueError("Missing SUPABASE_URL or Supabase Key environment variables.")
-    return create_client(url, key)
+def get_db_connection():
+    db_url = os.environ.get("DATABASE_URL") or os.environ.get("SUPABASE_DB_URL")
+    if not db_url:
+        raise ValueError("Missing DATABASE_URL / Direct Postgres Connection String.")
+    return psycopg2.connect(db_url)
 
-def fix_frontend_repository_code(src_dir="./src"):
-    modified_files = 0
-    replacements = {
-        r"\byourwebsite\b": "website",
-        r"\bsetBio\b": "bio",
-        r"\bsetEmail\b": "email",
-        r"\bsetPhone\b": "phone",
-        r"\bsetUsername\b": "username",
-        r"\bsetWebsite\b": "website"
-    }
+def drop_and_rebuild_direct_sql():
+    dropped = []
+    created = []
+    
+    conn = get_db_connection()
+    conn.autocommit = True
+    cursor = conn.cursor()
 
-    for root, _, files in os.walk(src_dir):
-        for file in files:
-            if file.endswith(EXTENSIONS):
-                file_path = os.path.join(root, file)
-                try:
-                    with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                        content = f.read()
-
-                    new_content = content
-                    for reg_pattern, replace_val in replacements.items():
-                        new_content = re.sub(reg_pattern, replace_val, new_content)
-
-                    if new_content != content:
-                        with open(file_path, 'w', encoding='utf-8') as f:
-                            f.write(new_content)
-                        modified_files += 1
-                except Exception:
-                    pass
-    return modified_files
-
-def drop_and_rebuild_database_schema(supabase):
-    dropped_tables = []
-    created_tables = []
-    errors = []
-
-    # Drop existing tables with CASCADE to clean all foreign keys and dependencies
     for table in MASTER_TABLES_SCHEMA.keys():
-        try:
-            drop_sql = f"DROP TABLE IF EXISTS public.{table} CASCADE;"
-            supabase.rpc('execute_sql', {'sql': drop_sql}).execute()
-            dropped_tables.append(table)
-        except Exception as e:
-            errors.append(f"Drop Table Error [{table}]: {str(e)}")
+        cursor.execute(f"DROP TABLE IF EXISTS public.{table} CASCADE;")
+        dropped.append(table)
 
-    # Recreate all tables cleanly
     for table, schema_cols in MASTER_TABLES_SCHEMA.items():
-        try:
-            cols_def = ", ".join(schema_cols)
-            create_sql = f"CREATE TABLE public.{table} ({cols_def});"
-            supabase.rpc('execute_sql', {'sql': create_sql}).execute()
-            created_tables.append(table)
-        except Exception as e:
-            errors.append(f"Create Table Error [{table}]: {str(e)}")
+        cols_def = ", ".join(schema_cols)
+        cursor.execute(f"CREATE TABLE public.{table} ({cols_def});")
+        created.append(table)
 
-    return dropped_tables, created_tables, errors
+    cursor.close()
+    conn.close()
+    return dropped, created
 
-def run_clean_rebuild_pipeline():
-    src_dir = "./src"
+def run_direct_rebuild():
     report = {
         "pipeline_status": "STARTING",
-        "frontend_fixed_files": 0,
-        "database_connection": False,
         "dropped_tables": [],
         "created_tables": [],
-        "errors": []
+        "error": None
     }
 
-    report["frontend_fixed_files"] = fix_frontend_repository_code(src_dir)
-
     try:
-        supabase = get_supabase_client()
-        report["database_connection"] = True
+        dropped, created = drop_and_rebuild_direct_sql()
+        report["dropped_tables"] = dropped
+        report["created_tables"] = created
+        report["pipeline_status"] = "SUCCESS: Wiped and Rebuilt All Database Tables Cleanly"
     except Exception as e:
-        report["pipeline_status"] = "FAILED: DATABASE AUTH ERROR"
-        report["errors"].append(str(e))
-        print(json.dumps(report, indent=2))
-        return
-
-    dropped, created, errors = drop_and_rebuild_database_schema(supabase)
-    report["dropped_tables"] = dropped
-    report["created_tables"] = created
-    report["errors"] = errors
-
-    if not errors:
-        report["pipeline_status"] = "SUCCESS: Code repaired, Database wiped and rebuilt successfully."
-    else:
-        report["pipeline_status"] = "COMPLETED WITH WARNINGS"
+        report["pipeline_status"] = "FAILED"
+        report["error"] = str(e)
 
     print(json.dumps(report, indent=2))
 
 if __name__ == "__main__":
-    run_clean_rebuild_pipeline()
+    run_direct_rebuild()
