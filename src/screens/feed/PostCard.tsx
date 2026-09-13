@@ -14,7 +14,6 @@ import { LikeButton } from '../../components/LikeButton';
 import { CommentButton } from '../../components/CommentButton';
 import { ShareButton } from '../../components/ShareButton';
 
-import { CommentSection } from '../Reactions/CommentSection';
 import { ReactionsModal } from '../Reactions/ReactionsModal';
 import { EditPostScreen } from '../Post/EditPostScreen';
 import { MediaViewerScreen } from './MediaViewerScreen';
@@ -171,15 +170,15 @@ const PostCardComponent: React.FC<PostCardProps> = ({ post, currentUserId, onUpd
                           { zIndex: 3 - index, marginLeft: index > 0 ? -6 : 0 }
                         ]}
                       >
-                        {reactionDef?.icon ? (
-                          <Image source={{ uri: reactionDef.icon }} style={styles.miniEmojiImage} />
+                        {reactionDef?.emoji ? (
+                          <Text style={styles.miniEmojiText}>{reactionDef.emoji}</Text>
                         ) : null}
                       </View>
                     );
                   })
                 ) : localUserReaction && FB_REACTIONS[localUserReaction] ? (
                   <View style={styles.miniReactionBadge}>
-                    <Image source={{ uri: FB_REACTIONS[localUserReaction].icon }} style={styles.miniEmojiImage} />
+                    <Text style={styles.miniEmojiText}>{FB_REACTIONS[localUserReaction].emoji}</Text>
                   </View>
                 ) : null}
               </View>
@@ -218,14 +217,6 @@ const PostCardComponent: React.FC<PostCardProps> = ({ post, currentUserId, onUpd
           />
         </View>
       </View>
-
-      {showComments && post?.id && (
-        <CommentSection 
-          postId={post.id} 
-          visible={showComments} 
-          onClose={() => setShowComments(false)} 
-        />
-      )}
 
       {showReactionsModal && post?.id && (
         <ReactionsModal
@@ -365,7 +356,7 @@ const styles = StyleSheet.create({
     borderColor: '#e4e6eb',
     overflow: 'hidden',
   },
-  miniEmojiImage: { width: 14, height: 14, borderRadius: 7 },
+  miniEmojiText: { fontSize: 11 },
   reactionCountText: { fontSize: 13, color: '#64748b', fontWeight: '600' },
   noReactionsText: { fontSize: 13, color: '#94a3b8', fontWeight: '500' },
   actionsBar: {
