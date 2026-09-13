@@ -30,11 +30,11 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({ navigation
   const [saving, setSaving] = useState<boolean>(false);
 
   const [fullName, setFullName] = useState<string>('');
-  const [username, username] = useState<string>('');
-  const [bio, bio] = useState<string>('');
-  const [website, website] = useState<string>('');
-  const [email, email] = useState<string>('');
-  const [phone, phone] = useState<string>('');
+  const [username, setUsername] = useState<string>('');
+  const [bio, setBio] = useState<string>('');
+  const [website, setWebsite] = useState<string>('');
+  const [email, setEmail] = useState<string>('');
+  const [phone, setPhone] = useState<string>('');
   const [currentCity, setCurrentCity] = useState<string>('');
 
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -50,11 +50,11 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({ navigation
       const data = await fetchUserProfile();
       if (data) {
         setFullName(data.full_name || '');
-        username(data.username || '');
-        bio(data.bio || '');
-        website(data.website || '');
-        email(data.email || '');
-        phone(data.phone || '');
+        setUsername(data.username || '');
+        setBio(data.bio || '');
+        setWebsite(data.website || '');
+        setEmail(data.email || '');
+        setPhone(data.phone || '');
         setCurrentCity(data.current_city || '');
         setAvatarUrl(data.avatar_url || null);
         setCoverUrl(data.cover_url || null);
@@ -142,6 +142,7 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({ navigation
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" translucent={false} />
       <View style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
@@ -213,7 +214,7 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({ navigation
               <TextInput
                 style={styles.input}
                 value={username}
-                onChangeText={username}
+                onChangeText={setUsername}
                 placeholder="Enter username"
                 placeholderTextColor="#8a8d91"
                 autoCapitalize="none"
@@ -225,7 +226,7 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({ navigation
               <TextInput
                 style={[styles.input, styles.bioInput]}
                 value={bio}
-                onChangeText={bio}
+                onChangeText={setBio}
                 placeholder="Write a short bio..."
                 placeholderTextColor="#8a8d91"
                 multiline
@@ -249,7 +250,7 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({ navigation
               <TextInput
                 style={styles.input}
                 value={website}
-                onChangeText={website}
+                onChangeText={setWebsite}
                 placeholder="https://website.com"
                 placeholderTextColor="#8a8d91"
                 autoCapitalize="none"
@@ -262,7 +263,7 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({ navigation
               <TextInput
                 style={styles.input}
                 value={email}
-                onChangeText={email}
+                onChangeText={setEmail}
                 placeholder="Enter email address"
                 placeholderTextColor="#8a8d91"
                 autoCapitalize="none"
@@ -275,7 +276,7 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({ navigation
               <TextInput
                 style={styles.input}
                 value={phone}
-                onChangeText={phone}
+                onChangeText={setPhone}
                 placeholder="Enter phone number"
                 placeholderTextColor="#8a8d91"
                 keyboardType="phone-pad"
@@ -292,7 +293,7 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: '#ffffff',
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 24) + 8 : 0,
   },
   container: {
     flex: 1,
@@ -304,27 +305,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   header: {
-    minHeight: 50,
+    height: 56,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 8,
     backgroundColor: '#ffffff',
     borderBottomWidth: 1,
     borderBottomColor: '#e4e6eb',
   },
   backButton: {
-    padding: 4,
+    padding: 6,
   },
   headerTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#050505',
   },
   saveHeaderBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 5,
+    paddingHorizontal: 16,
+    paddingVertical: 7,
     backgroundColor: '#1877f2',
     borderRadius: 6,
     justifyContent: 'center',
@@ -333,7 +333,7 @@ const styles = StyleSheet.create({
   saveHeaderBtnText: {
     color: '#ffffff',
     fontWeight: 'bold',
-    fontSize: 13,
+    fontSize: 14,
   },
   scrollContent: {
     paddingBottom: 24,
