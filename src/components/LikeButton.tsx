@@ -1,15 +1,24 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Modal, Image, TouchableWithoutFeedback } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Modal,
+  Image,
+  TouchableWithoutFeedback,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../theme';
 import { FB_REACTIONS } from '../constants/reactions';
+import { supabase } from '../services/postService';
 
 interface LikeButtonProps {
-  isLiked: boolean;
-  likeCount: number;
+  postId: string;
+  isLiked?: boolean;
+  totalReactions?: number;
   userReaction?: string;
-  onPress: () => void;
-  onSelectReaction: (reactionId: string) => void;
+  onUpdate?: () => void;
 }
 
 const formatNumber = (num: number): string => {
@@ -20,31 +29,104 @@ const formatNumber = (num: number): string => {
 };
 
 export const LikeButton: React.FC<LikeButtonProps> = ({
-  isLiked,
-  likeCount,
+  postId,
+  isLiked = false,
+  totalReactions = 0,
   userReaction,
-  onPress,
-  onSelectReaction,
+  onUpdate,
 }) => {
-  const [showPicker, setShowPicker] = useState(false);
-  const formattedCount = formatNumber(likeCount);
+  const [showPicker, setShowPicker] = useState<boolean>(false);
+  const [localIsLiked, setLocalIsLiked] = useState<boolean>(Boolean(isLiked));
+  const [localCount, setLocalCount] = useState<number>(Math.max(0, Number(totalReactions) || 0));
+  const [localUserReaction, setLocalUserReaction] = useState<string | undefined>(userReaction);
+
+  const activeRequestController = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    setLocalIsLiked(Boolean(isLiked));
+    setLocalCount(Math.max(0, Number(totalReactions) || 0));
+    setLocalUserReaction(userReaction);
+  }, [isLiked, totalReactions, userReaction]);
+
+  const syncWithDatabase = async (finalIsLiked: boolean, reactionType: string) => {
+    if (activeRequestController.current) {
+      activeRequestController.current.abort();
+    }
+    activeRequestController.current = new AbortController();
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      if (finalIsLiked) {
+        const reactionPayload = {
+          post_id: postId,
+          user_id: user.id,
+          like: reactionType === 'like',
+          love: reactionType === 'love',
+          care: reactionType === 'care',
+          haha: reactionType === 'haha',
+          wow: reactionType === 'wow',
+          sad: reactionType === 'sad',
+          angry: reactionType === 'angry',
+        };
+
+        await supabase
+          .from('likes')
+          .upsert(reactionPayload, { onConflict: 'post_id,user_id' });
+      } else {
+        await supabase
+          .from('likes')
+          .delete()
+          .eq('post_id', postId)
+          .eq('user_id', user.id);
+      }
+
+      if (onUpdate) {
+        onUpdate();
+      }
+    } catch (error: any) {
+      if (error.name !== 'AbortError') {
+        console.error('Error syncing reaction:', error);
+      }
+    }
+  };
+
+  const handleToggleReaction = (selectedReactionKey: string = 'like') => {
+    let nextIsLiked = true;
+    let nextReaction: string | undefined = selectedReactionKey;
+
+    if (!localIsLiked) {
+      nextIsLiked = true;
+      nextReaction = selectedReactionKey;
+    } else if (localUserReaction === selectedReactionKey) {
+      nextIsLiked = false;
+      nextReaction = undefined;
+    } else {
+      nextIsLiked = true;
+      nextReaction = selectedReactionKey;
+    }
+
+    const countDelta = !localIsLiked && nextIsLiked ? 1 : (localIsLiked && !nextIsLiked ? -1 : 0);
+    const nextCount = Math.max(0, localCount + countDelta);
+
+    setLocalIsLiked(nextIsLiked);
+    setLocalCount(nextCount);
+    setLocalUserReaction(nextReaction);
+
+    syncWithDatabase(nextIsLiked, nextReaction || 'like');
+  };
 
   const reactionsArray = Object.keys(FB_REACTIONS).map((key) => ({
     id: key,
     ...FB_REACTIONS[key],
   }));
 
-  const getReactionMeta = () => {
-    if (!isLiked) return { label: 'Like', icon: null, color: theme.colors.textSecondary };
-    const current = FB_REACTIONS[userReaction || 'like'] || FB_REACTIONS['like'];
-    return {
-      label: current.label,
-      icon: current.icon,
-      color: userReaction === 'like' ? '#1877f2' : theme.colors.notification,
-    };
-  };
+  const currentMeta = localIsLiked && localUserReaction && FB_REACTIONS[localUserReaction]
+    ? FB_REACTIONS[localUserReaction]
+    : null;
 
-  const meta = getReactionMeta();
+  const formattedCountStr = formatNumber(localCount);
 
   return (
     <View style={styles.container}>
@@ -57,11 +139,16 @@ export const LikeButton: React.FC<LikeButtonProps> = ({
                   key={item.id}
                   onPress={() => {
                     setShowPicker(false);
-                    onSelectReaction(item.id);
+                    handleToggleReaction(item.id);
                   }}
                   style={styles.emojiBtn}
+                  activeOpacity={0.7}
                 >
-                  <Image source={{ uri: item.icon }} style={styles.reactionIcon} />
+                  {item.icon ? (
+                    <Image source={{ uri: item.icon }} style={styles.popupReactionIcon} />
+                  ) : (
+                    <Text style={styles.reactionEmojiText}>{item.emoji}</Text>
+                  )}
                 </TouchableOpacity>
               ))}
             </View>
@@ -71,22 +158,26 @@ export const LikeButton: React.FC<LikeButtonProps> = ({
 
       <TouchableOpacity
         style={styles.button}
-        onPress={onPress}
+        onPress={() => handleToggleReaction(localUserReaction || 'like')}
         onLongPress={() => setShowPicker(true)}
-        activeOpacity={0.8}
+        activeOpacity={0.7}
       >
-        {meta.icon ? (
-          <Image source={{ uri: meta.icon }} style={styles.inlineIcon} />
+        {localIsLiked && currentMeta ? (
+          currentMeta.icon ? (
+            <Image source={{ uri: currentMeta.icon }} style={styles.inlineIcon} />
+          ) : (
+            <Text style={styles.inlineEmoji}>{currentMeta.emoji}</Text>
+          )
         ) : (
           <Ionicons
-            name={isLiked ? "heart" : "heart-outline"}
+            name="thumbs-up-outline"
             size={20}
-            color={isLiked ? meta.color : theme.colors.textSecondary}
+            color={theme.colors?.textSecondary || '#65676b'}
             style={styles.ionicIcon}
           />
         )}
-        <Text style={[styles.text, isLiked && { color: meta.color }]}>
-          {formattedCount ? `${meta.label} ${formattedCount}` : meta.label}
+        <Text style={[styles.text, localIsLiked && (currentMeta?.color ? { color: currentMeta.color } : styles.likedText)]}>
+          {currentMeta ? currentMeta.label : 'Like'} {formattedCountStr ? `(${formattedCountStr})` : ''}
         </Text>
       </TouchableOpacity>
     </View>
@@ -96,12 +187,11 @@ export const LikeButton: React.FC<LikeButtonProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    position: 'relative',
   },
   button: {
     flex: 1,
     flexDirection: 'row',
-    paddingVertical: theme.spacing.sm,
+    paddingVertical: theme.spacing?.sm || 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -109,41 +199,49 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   inlineIcon: {
-    width: 22,
-    height: 22,
+    width: 20,
+    height: 20,
     marginRight: 6,
-    borderRadius: 11,
+  },
+  inlineEmoji: {
+    fontSize: 18,
+    marginRight: 6,
   },
   text: {
-    fontSize: theme.typography.fontSizes.sm,
-    color: theme.colors.textSecondary,
+    fontSize: theme.typography?.fontSizes?.sm || 13,
+    color: theme.colors?.textSecondary || '#65676b',
     fontWeight: '600',
+  },
+  likedText: {
+    color: '#1877f2',
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+    backgroundColor: 'transparent',
     justifyContent: 'center',
     alignItems: 'center',
   },
   reactionPickerPopup: {
     backgroundColor: '#ffffff',
-    borderRadius: 40,
+    borderRadius: 30,
     flexDirection: 'row',
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 6,
     gap: 8,
-    elevation: 15,
+    elevation: 8,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
   },
   emojiBtn: {
-    padding: 4,
+    padding: 3,
   },
-  reactionIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+  popupReactionIcon: {
+    width: 32,
+    height: 32,
+  },
+  reactionEmojiText: {
+    fontSize: 28,
   },
 });
