@@ -1,6 +1,6 @@
 import { Loader } from '../../components/Loader';
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, RefreshControl, Image, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, RefreshControl, Image, SafeAreaView, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Header } from '../../components/Header';
 import { fetchUserProfile, fetchUserPosts } from '../../services/userService';
@@ -8,12 +8,13 @@ import { PostCard } from '../feed/PostCard';
 
 interface ProfileScreenProps {
   navigation: any;
-  route?: any;
 }
 
 const PAGE_SIZE = 10;
+const { width } = Dimensions.get('window');
+const COVER_ASPECT_RATIO = 16 / 9;
 
-export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation, route }) => {
+export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
   const [profile, setProfile] = useState<any>(null);
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -22,15 +23,13 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation, route 
   const [page, setPage] = useState<number>(1);
   const [hasMorePosts, setHasMorePosts] = useState<boolean>(true);
 
-  const userId = route?.params?.userId;
-
   const loadProfileData = useCallback(async () => {
     try {
       setLoading(true);
-      const profileData = await fetchUserProfile(userId);
+      const profileData = await fetchUserProfile();
       if (profileData) setProfile(profileData);
 
-      const userPosts = await fetchUserPosts(userId, 1, PAGE_SIZE);
+      const userPosts = await fetchUserPosts(undefined, 1, PAGE_SIZE);
       if (userPosts) {
         setPosts(userPosts);
         setHasMorePosts(userPosts.length === PAGE_SIZE);
@@ -42,7 +41,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation, route 
       setLoading(false);
       setRefreshing(false);
     }
-  }, [userId]);
+  }, []);
 
   useEffect(() => {
     loadProfileData();
@@ -59,7 +58,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation, route 
     try {
       setLoadingMore(true);
       const nextPage = page + 1;
-      const newPosts = await fetchUserPosts(userId, nextPage, PAGE_SIZE);
+      const newPosts = await fetchUserPosts(undefined, nextPage, PAGE_SIZE);
       if (newPosts && newPosts.length > 0) {
         setPosts((prev) => [...prev, ...newPosts]);
         setPage(nextPage);
@@ -76,10 +75,9 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation, route 
 
   const renderProfileHeader = () => (
     <View style={styles.headerContainer}>
-      {/* Cover Photo */}
       <View style={styles.coverContainer}>
         {profile?.cover_url ? (
-          <Image source={{ uri: profile.cover_url }} style={styles.coverImage} />
+          <Image source={{ uri: profile.cover_url }} style={styles.coverImage} resizeMode="cover" />
         ) : (
           <View style={styles.defaultCoverPlaceholder}>
             <Ionicons name="image-outline" size={40} color="#8a8d91" />
@@ -88,7 +86,6 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation, route 
       </View>
 
       <View style={styles.profileHeaderContent}>
-        {/* Avatar */}
         <View style={styles.avatarWrapper}>
           {profile?.avatar_url ? (
             <Image source={{ uri: profile.avatar_url }} style={styles.avatar} />
@@ -99,7 +96,6 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation, route 
           )}
         </View>
 
-        {/* Name & Verification */}
         <View style={styles.nameBadgeRow}>
           <Text style={styles.userName}>{profile?.full_name || 'User Profile'}</Text>
           {profile?.is_verified && (
@@ -111,7 +107,6 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation, route 
           {profile?.posts_count || posts.length} posts
         </Text>
 
-        {/* Action Buttons */}
         <View style={styles.actionButtonsRow}>
           <TouchableOpacity
             style={styles.primaryBtn}
@@ -132,7 +127,6 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation, route 
           </TouchableOpacity>
         </View>
 
-        {/* Clean Info Section (Bio & Website only) */}
         {(profile?.bio || profile?.website || profile?.current_city) && (
           <View style={styles.infoCard}>
             {profile?.bio && (
@@ -156,7 +150,6 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation, route 
           </View>
         )}
 
-        {/* Create Post Shortcut Box */}
         <View style={styles.createPostBox}>
           {profile?.avatar_url ? (
             <Image source={{ uri: profile.avatar_url }} style={styles.smallAvatar} />
@@ -254,8 +247,8 @@ const styles = StyleSheet.create({
     borderBottomColor: '#e4e6eb',
   },
   coverContainer: {
-    height: 150,
-    width: '100%',
+    width: width,
+    height: width / COVER_ASPECT_RATIO,
     backgroundColor: '#e4e6eb',
   },
   coverImage: {
@@ -274,7 +267,7 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
   },
   avatarWrapper: {
-    marginTop: -40,
+    marginTop: -44,
     alignSelf: 'flex-start',
     borderRadius: 44,
     borderWidth: 3,
@@ -288,10 +281,12 @@ const styles = StyleSheet.create({
   avatar: {
     width: '100%',
     height: '100%',
+    borderRadius: 44,
   },
   defaultAvatarPlaceholder: {
     width: '100%',
     height: '100%',
+    borderRadius: 44,
     backgroundColor: '#e4e6eb',
     justifyContent: 'center',
     alignItems: 'center',
