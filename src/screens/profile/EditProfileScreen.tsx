@@ -10,6 +10,8 @@ import {
   TextInput,
   SafeAreaView,
   Dimensions,
+  Platform,
+  StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -162,11 +164,11 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({ navigation
                 <Image source={{ uri: coverUrl }} style={styles.coverImage} resizeMode="cover" />
               ) : (
                 <View style={styles.defaultCoverPlaceholder}>
-                  <Ionicons name="image-outline" size={36} color="#8a8d91" />
+                  <Ionicons name="image-outline" size={32} color="#8a8d91" />
                 </View>
               )}
               <View style={styles.editCoverBadge}>
-                <Ionicons name="camera" size={16} color="#ffffff" />
+                <Ionicons name="camera" size={14} color="#ffffff" />
               </View>
             </TouchableOpacity>
 
@@ -180,7 +182,7 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({ navigation
                   <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
                 ) : (
                   <View style={styles.defaultAvatarPlaceholder}>
-                    <Ionicons name="person" size={40} color="#1c2b33" />
+                    <Ionicons name="person" size={36} color="#1c2b33" />
                   </View>
                 )}
               </TouchableOpacity>
@@ -189,7 +191,7 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({ navigation
                 onPress={() => handlePickImage('avatar')}
                 activeOpacity={0.8}
               >
-                <Ionicons name="camera" size={14} color="#ffffff" />
+                <Ionicons name="camera" size={12} color="#ffffff" />
               </TouchableOpacity>
             </View>
           </View>
@@ -219,7 +221,7 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({ navigation
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>bio</Text>
+              <Text style={styles.label}>Bio</Text>
               <TextInput
                 style={[styles.input, styles.bioInput]}
                 value={bio}
@@ -301,7 +303,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   header: {
-    height: 56,
+    height: 50,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -309,35 +311,38 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderBottomWidth: 1,
     borderBottomColor: '#e4e6eb',
+    paddingTop: Platform.OS === 'android' ? 0 : 0,
   },
   backButton: {
     padding: 4,
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#050505',
   },
   saveHeaderBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 5,
     backgroundColor: '#1877f2',
     borderRadius: 6,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   saveHeaderBtnText: {
     color: '#ffffff',
     fontWeight: 'bold',
-    fontSize: 14,
+    fontSize: 13,
   },
   scrollContent: {
-    paddingBottom: 30,
+    paddingBottom: 24,
   },
   imagesSection: {
     backgroundColor: '#ffffff',
-    marginBottom: 12,
+    marginBottom: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#e4e6eb',
-    paddingBottom: 20,
+    paddingBottom: 16,
   },
   coverContainer: {
     width: width,
@@ -358,40 +363,40 @@ const styles = StyleSheet.create({
   },
   editCoverBadge: {
     position: 'absolute',
-    bottom: 12,
-    right: 12,
+    bottom: 10,
+    right: 10,
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarWrapper: {
-    marginTop: -40,
+    marginTop: -35,
     marginLeft: 16,
     alignSelf: 'flex-start',
     position: 'relative',
   },
   avatarContainer: {
-    width: 84,
-    height: 84,
-    borderRadius: 42,
+    width: 76,
+    height: 76,
+    borderRadius: 38,
     borderWidth: 3,
     borderColor: '#ffffff',
     backgroundColor: '#ffffff',
     overflow: 'hidden',
-    elevation: 3,
+    elevation: 2,
   },
   avatarImage: {
     width: '100%',
     height: '100%',
-    borderRadius: 42,
+    borderRadius: 38,
   },
   defaultAvatarPlaceholder: {
     width: '100%',
     height: '100%',
-    borderRadius: 42,
+    borderRadius: 38,
     backgroundColor: '#e4e6eb',
     justifyContent: 'center',
     alignItems: 'center',
@@ -401,9 +406,9 @@ const styles = StyleSheet.create({
     bottom: 0,
     right: 0,
     backgroundColor: '#1877f2',
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     borderWidth: 2,
     borderColor: '#ffffff',
     justifyContent: 'center',
@@ -412,33 +417,33 @@ const styles = StyleSheet.create({
   formCard: {
     backgroundColor: '#ffffff',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 10,
     borderTopWidth: 1,
     borderBottomWidth: 1,
     borderColor: '#e4e6eb',
   },
   inputGroup: {
-    marginBottom: 16,
+    marginBottom: 12,
   },
   label: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: 'bold',
     color: '#65676b',
-    marginBottom: 6,
+    marginBottom: 4,
   },
   input: {
     backgroundColor: '#f0f2f5',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    height: 44,
-    fontSize: 15,
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    height: 40,
+    fontSize: 14,
     color: '#050505',
     borderWidth: 1,
     borderColor: '#e4e6eb',
   },
   bioInput: {
-    height: 80,
-    paddingTop: 10,
+    height: 70,
+    paddingTop: 8,
     textAlignVertical: 'top',
   },
 });
