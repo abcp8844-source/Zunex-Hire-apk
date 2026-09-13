@@ -211,11 +211,10 @@ const PostCardComponent: React.FC<PostCardProps> = ({ post, currentUserId, onUpd
 
         <View style={styles.actionItem}>
           <ShareButton 
-            postId={post?.id}
-            content={post?.content}
-            imageUrl={post?.image_url}
-            count={totalShares}
-            onShareSuccess={onUpdate}
+            shareCount={totalShares}
+            shareMessage={post?.content}
+            shareUrl={post?.image_url}
+            onPress={onUpdate}
           />
         </View>
       </View>
