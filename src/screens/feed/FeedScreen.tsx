@@ -209,7 +209,7 @@ const styles = StyleSheet.create({
   },
   loaderContainer: {
     flex: 1,
-    justify.content: 'center',
+    justifyContent: 'center',
     alignItems: 'center',
   },
   listContainer: {
