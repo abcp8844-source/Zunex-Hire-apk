@@ -292,6 +292,7 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: '#ffffff',
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
   },
   container: {
     flex: 1,
@@ -303,15 +304,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   header: {
-    height: 50,
+    minHeight: 50,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
+    paddingVertical: 8,
     backgroundColor: '#ffffff',
     borderBottomWidth: 1,
     borderBottomColor: '#e4e6eb',
-    paddingTop: Platform.OS === 'android' ? 0 : 0,
   },
   backButton: {
     padding: 4,
