@@ -4,14 +4,21 @@ import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../theme';
 
 interface ShareButtonProps {
-  shareCount: number;
+  shareCount?: number;
   onPress?: () => void;
   shareMessage?: string;
   shareUrl?: string;
 }
 
+const formatNumber = (num: number): string => {
+  if (!num || num === 0) return '';
+  if (num >= 1000000) return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+  if (num >= 1000) return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+  return num.toString();
+};
+
 export const ShareButton: React.FC<ShareButtonProps> = ({ 
-  shareCount, 
+  shareCount = 0, 
   onPress, 
   shareMessage,
   shareUrl 
@@ -30,20 +37,30 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
 
       if (result.action === Share.sharedAction) {
         if (result.activityType) {
+          // Shared with activity type
         } else {
+          // Shared
         }
       } else if (result.action === Share.dismissedAction) {
+        // Dismissed
       }
-    } catch (error) {
-      console.error(error);
+    } catch (error: any) {
+      console.error('Error sharing post:', error.message);
     }
   };
 
+  const formattedCount = formatNumber(shareCount);
+
   return (
     <TouchableOpacity style={styles.button} onPress={handlePress} activeOpacity={0.7}>
-      <Ionicons name="arrow-redo-outline" size={18} color={theme.colors.textSecondary} style={styles.icon} />
+      <Ionicons 
+        name="arrow-redo-outline" 
+        size={20} 
+        color={theme.colors?.textSecondary || '#65676b'} 
+        style={styles.icon} 
+      />
       <Text style={styles.text}>
-        Share {shareCount > 0 ? `(${shareCount})` : ''}
+        {formattedCount ? `Share (${formattedCount})` : 'Share'}
       </Text>
     </TouchableOpacity>
   );
@@ -53,7 +70,7 @@ const styles = StyleSheet.create({
   button: {
     flex: 1,
     flexDirection: 'row',
-    paddingVertical: theme.spacing.sm,
+    paddingVertical: theme.spacing?.sm || 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -61,8 +78,8 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   text: {
-    fontSize: theme.typography.fontSizes.sm,
-    color: theme.colors.textSecondary,
-    fontWeight: '500',
+    fontSize: theme.typography?.fontSizes?.sm || 13,
+    color: theme.colors?.textSecondary || '#65676b',
+    fontWeight: '600',
   },
 });
