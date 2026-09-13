@@ -1,4 +1,3 @@
-import { Loader } from '../../components/Loader';
 import React, { useEffect, useState } from 'react';
 import {
   View,
@@ -13,7 +12,9 @@ import {
   Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { fetchUserProfile, updateUserProfile } from '../../services/userService';
+import * as ImagePicker from 'expo-image-picker';
+import { Loader } from '../../components/Loader';
+import { fetchUserProfile, updateUserProfile, uploadMedia } from '../../services/userService';
 
 interface EditProfileScreenProps {
   navigation: any;
@@ -26,15 +27,16 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({ navigation
   const [loading, setLoading] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
 
-  // Profile Form States
   const [fullName, setFullName] = useState<string>('');
   const [username, setUsername] = useState<string>('');
   const [bio, setBio] = useState<string>('');
   const [website, setWebsite] = useState<string>('');
   const [email, setEmail] = useState<string>('');
   const [phone, setPhone] = useState<string>('');
-  const [avatarUrl, setAvatarUrl] = useState<string>('');
-  const [coverUrl, setCoverUrl] = useState<string>('');
+  const [currentCity, setCurrentCity] = useState<string>('');
+
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [coverUrl, setCoverUrl] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
@@ -51,8 +53,9 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({ navigation
         setWebsite(data.website || '');
         setEmail(data.email || '');
         setPhone(data.phone || '');
-        setAvatarUrl(data.avatar_url || '');
-        setCoverUrl(data.cover_url || '');
+        setCurrentCity(data.current_city || '');
+        setAvatarUrl(data.avatar_url || null);
+        setCoverUrl(data.cover_url || null);
       }
     } catch (error) {
       Alert.alert('Error', 'Failed to load profile details.');
@@ -61,18 +64,58 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({ navigation
     }
   };
 
+  const handlePickImage = async (type: 'avatar' | 'cover') => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission Denied', 'Permission to access gallery is required!');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: type === 'avatar' ? [1, 1] : [16, 9],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      const selectedUri = result.assets[0].uri;
+      if (type === 'avatar') {
+        setAvatarUrl(selectedUri);
+      } else {
+        setCoverUrl(selectedUri);
+      }
+    }
+  };
+
   const handleSaveAll = async () => {
     try {
       setSaving(true);
+      let finalAvatarUrl = avatarUrl;
+      let finalCoverUrl = coverUrl;
+
+      if (avatarUrl && !avatarUrl.startsWith('http')) {
+        if (typeof uploadMedia === 'function') {
+          finalAvatarUrl = await uploadMedia(avatarUrl, 'avatars');
+        }
+      }
+
+      if (coverUrl && !coverUrl.startsWith('http')) {
+        if (typeof uploadMedia === 'function') {
+          finalCoverUrl = await uploadMedia(coverUrl, 'covers');
+        }
+      }
+
       const updatedProfile = {
-        full_name: fullName,
-        username: username,
-        bio: bio,
-        website: website,
-        email: email,
-        phone: phone,
-        avatar_url: avatarUrl,
-        cover_url: coverUrl,
+        full_name: fullName.trim(),
+        username: username.trim(),
+        bio: bio.trim(),
+        website: website.trim(),
+        email: email.trim(),
+        phone: phone.trim(),
+        current_city: currentCity.trim(),
+        avatar_url: finalAvatarUrl,
+        cover_url: finalCoverUrl,
       };
 
       await updateUserProfile(updatedProfile);
@@ -98,59 +141,62 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({ navigation
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color="#050505" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Edit Profile</Text>
           <TouchableOpacity onPress={handleSaveAll} disabled={saving} style={styles.saveHeaderBtn}>
-            {saving ? (
-              <Loader />
-            ) : (
-              <Text style={styles.saveHeaderBtnText}>Save</Text>
-            )}
+            {saving ? <Loader /> : <Text style={styles.saveHeaderBtnText}>Save</Text>}
           </TouchableOpacity>
         </View>
 
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-          {/* Images Section */}
           <View style={styles.imagesSection}>
-            {/* Cover Photo - 16:9 Aspect Ratio */}
-            <View style={styles.coverContainer}>
+            <TouchableOpacity
+              style={styles.coverContainer}
+              onPress={() => handlePickImage('cover')}
+              activeOpacity={0.9}
+            >
               {coverUrl ? (
                 <Image source={{ uri: coverUrl }} style={styles.coverImage} resizeMode="cover" />
               ) : (
                 <View style={styles.defaultCoverPlaceholder}>
-                  <Ionicons name="image-outline" size={32} color="#8a8d91" />
+                  <Ionicons name="image-outline" size={36} color="#8a8d91" />
                 </View>
               )}
-              <TouchableOpacity style={styles.editCoverBadge} activeOpacity={0.8}>
+              <View style={styles.editCoverBadge}>
                 <Ionicons name="camera" size={16} color="#ffffff" />
-              </TouchableOpacity>
-            </View>
+              </View>
+            </TouchableOpacity>
 
-            {/* Profile Photo - Round WhatsApp Style */}
             <View style={styles.avatarWrapper}>
-              <View style={styles.avatarContainer}>
+              <TouchableOpacity
+                style={styles.avatarContainer}
+                onPress={() => handlePickImage('avatar')}
+                activeOpacity={0.9}
+              >
                 {avatarUrl ? (
                   <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
                 ) : (
                   <View style={styles.defaultAvatarPlaceholder}>
-                    <Ionicons name="person" size={36} color="#1c2b33" />
+                    <Ionicons name="person" size={40} color="#1c2b33" />
                   </View>
                 )}
-              </View>
-              <TouchableOpacity style={styles.editAvatarBadge} activeOpacity={0.8}>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.editAvatarBadge}
+                onPress={() => handlePickImage('avatar')}
+                activeOpacity={0.8}
+              >
                 <Ionicons name="camera" size={14} color="#ffffff" />
               </TouchableOpacity>
             </View>
           </View>
 
-          {/* Form Inputs */}
           <View style={styles.formCard}>
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Full name</Text>
+              <Text style={styles.label}>Full Name</Text>
               <TextInput
                 style={styles.input}
                 value={fullName}
@@ -173,7 +219,7 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({ navigation
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>bio</Text>
+              <Text style={styles.label}>Bio</Text>
               <TextInput
                 style={[styles.input, styles.bioInput]}
                 value={bio}
@@ -182,6 +228,17 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({ navigation
                 placeholderTextColor="#8a8d91"
                 multiline
                 numberOfLines={3}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Current City</Text>
+              <TextInput
+                style={styles.input}
+                value={currentCity}
+                onChangeText={setCurrentCity}
+                placeholder="Enter current city"
+                placeholderTextColor="#8a8d91"
               />
             </View>
 
@@ -212,7 +269,7 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({ navigation
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Phone Number (Optional)</Text>
+              <Text style={styles.label}>Phone Number</Text>
               <TextInput
                 style={styles.input}
                 value={phone}
@@ -262,7 +319,7 @@ const styles = StyleSheet.create({
     color: '#050505',
   },
   saveHeaderBtn: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 16,
     paddingVertical: 6,
     backgroundColor: '#1877f2',
     borderRadius: 6,
@@ -304,9 +361,9 @@ const styles = StyleSheet.create({
     bottom: 12,
     right: 12,
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -317,9 +374,9 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   avatarContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 84,
+    height: 84,
+    borderRadius: 42,
     borderWidth: 3,
     borderColor: '#ffffff',
     backgroundColor: '#ffffff',
@@ -329,12 +386,12 @@ const styles = StyleSheet.create({
   avatarImage: {
     width: '100%',
     height: '100%',
-    borderRadius: 40,
+    borderRadius: 42,
   },
   defaultAvatarPlaceholder: {
     width: '100%',
     height: '100%',
-    borderRadius: 40,
+    borderRadius: 42,
     backgroundColor: '#e4e6eb',
     justifyContent: 'center',
     alignItems: 'center',
