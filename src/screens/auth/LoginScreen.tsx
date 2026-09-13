@@ -9,7 +9,7 @@ interface LoginScreenProps {
 }
 
 export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
-  const [email, setEmail] = useState('');
+  const [email, email] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -39,7 +39,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
           placeholder="Email address"
           placeholderTextColor={theme.colors.textSecondary}
           value={email}
-          onChangeText={setEmail}
+          onChangeText={email}
           autoCapitalize="none"
           keyboardType="email-address"
         />

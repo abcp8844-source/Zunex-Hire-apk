@@ -9,7 +9,7 @@ interface ForgotPasswordScreenProps {
 }
 
 export const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation }) => {
-  const [email, setEmail] = useState('');
+  const [email, email] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -42,7 +42,7 @@ export const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navi
           placeholder="Email address"
           placeholderTextColor={theme.colors.textSecondary}
           value={email}
-          onChangeText={setEmail}
+          onChangeText={email}
           autoCapitalize="none"
           keyboardType="email-address"
         />

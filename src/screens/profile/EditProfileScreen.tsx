@@ -30,11 +30,11 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({ navigation
   const [saving, setSaving] = useState<boolean>(false);
 
   const [fullName, setFullName] = useState<string>('');
-  const [username, setUsername] = useState<string>('');
-  const [bio, setBio] = useState<string>('');
-  const [website, setWebsite] = useState<string>('');
-  const [email, setEmail] = useState<string>('');
-  const [phone, setPhone] = useState<string>('');
+  const [username, username] = useState<string>('');
+  const [bio, bio] = useState<string>('');
+  const [website, website] = useState<string>('');
+  const [email, email] = useState<string>('');
+  const [phone, phone] = useState<string>('');
   const [currentCity, setCurrentCity] = useState<string>('');
 
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -50,11 +50,11 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({ navigation
       const data = await fetchUserProfile();
       if (data) {
         setFullName(data.full_name || '');
-        setUsername(data.username || '');
-        setBio(data.bio || '');
-        setWebsite(data.website || '');
-        setEmail(data.email || '');
-        setPhone(data.phone || '');
+        username(data.username || '');
+        bio(data.bio || '');
+        website(data.website || '');
+        email(data.email || '');
+        phone(data.phone || '');
         setCurrentCity(data.current_city || '');
         setAvatarUrl(data.avatar_url || null);
         setCoverUrl(data.cover_url || null);
@@ -213,7 +213,7 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({ navigation
               <TextInput
                 style={styles.input}
                 value={username}
-                onChangeText={setUsername}
+                onChangeText={username}
                 placeholder="Enter username"
                 placeholderTextColor="#8a8d91"
                 autoCapitalize="none"
@@ -225,7 +225,7 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({ navigation
               <TextInput
                 style={[styles.input, styles.bioInput]}
                 value={bio}
-                onChangeText={setBio}
+                onChangeText={bio}
                 placeholder="Write a short bio..."
                 placeholderTextColor="#8a8d91"
                 multiline
@@ -249,8 +249,8 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({ navigation
               <TextInput
                 style={styles.input}
                 value={website}
-                onChangeText={setWebsite}
-                placeholder="https://yourwebsite.com"
+                onChangeText={website}
+                placeholder="https://website.com"
                 placeholderTextColor="#8a8d91"
                 autoCapitalize="none"
                 keyboardType="url"
@@ -262,7 +262,7 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({ navigation
               <TextInput
                 style={styles.input}
                 value={email}
-                onChangeText={setEmail}
+                onChangeText={email}
                 placeholder="Enter email address"
                 placeholderTextColor="#8a8d91"
                 autoCapitalize="none"
@@ -275,7 +275,7 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({ navigation
               <TextInput
                 style={styles.input}
                 value={phone}
-                onChangeText={setPhone}
+                onChangeText={phone}
                 placeholder="Enter phone number"
                 placeholderTextColor="#8a8d91"
                 keyboardType="phone-pad"
