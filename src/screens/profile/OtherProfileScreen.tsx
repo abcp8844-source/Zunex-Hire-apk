@@ -1,7 +1,18 @@
-import { Loader } from '../../components/Loader';
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, RefreshControl, Image, SafeAreaView, Dimensions } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+  Alert,
+  RefreshControl,
+  Image,
+  SafeAreaView,
+  Dimensions,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Loader } from '../../components/Loader';
 import { Header } from '../../components/Header';
 import { fetchUserProfile, fetchUserPosts } from '../../services/userService';
 import { PostCard } from '../feed/PostCard';
@@ -26,13 +37,12 @@ export const OtherProfileScreen: React.FC<OtherProfileScreenProps> = ({ navigati
   const [page, setPage] = useState<number>(1);
   const [hasMorePosts, setHasMorePosts] = useState<boolean>(true);
 
-  // Friend Request States: 'none' | 'pending' | 'friends'
-  const [friendStatus, setFriendStatus] = useState<'none' | 'pending' | 'friends'>('none');
+  const [friendStatus, setFriendStatus] = useState<'none' | 'pending'>('none');
   const [actionLoading, setActionLoading] = useState<boolean>(false);
 
   const loadProfileData = useCallback(async () => {
     if (!targetUserId) {
-      Alert.alert('Error', 'User id missing.');
+      Alert.alert('Error', 'User ID missing.');
       navigation.goBack();
       return;
     }
@@ -42,9 +52,7 @@ export const OtherProfileScreen: React.FC<OtherProfileScreenProps> = ({ navigati
       const profileData = await fetchUserProfile(targetUserId);
       if (profileData) {
         setProfile(profileData);
-        if (profileData.friend_status) {
-          setFriendStatus(profileData.friend_status);
-        }
+        setFriendStatus(profileData.friend_status === 'pending' ? 'pending' : 'none');
       }
 
       const userPosts = await fetchUserPosts(targetUserId, 1, PAGE_SIZE);
@@ -53,8 +61,8 @@ export const OtherProfileScreen: React.FC<OtherProfileScreenProps> = ({ navigati
         setHasMorePosts(userPosts.length === PAGE_SIZE);
         setPage(1);
       }
-    } catch (error: any) {
-      Alert.alert('Error', 'Unable to load user profile.');
+    } catch (error) {
+      Alert.alert('Error', 'Unable to load profile.');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -91,16 +99,10 @@ export const OtherProfileScreen: React.FC<OtherProfileScreenProps> = ({ navigati
     }
   };
 
-  const handleFriendAction = async () => {
+  const handleToggleFriendRequest = async () => {
     try {
       setActionLoading(true);
-      if (friendStatus === 'none') {
-        // Add Friend API Call Here
-        setFriendStatus('pending');
-      } else if (friendStatus === 'pending') {
-        // Cancel Request API Call Here
-        setFriendStatus('none');
-      }
+      setFriendStatus((prev) => (prev === 'none' ? 'pending' : 'none'));
     } catch (error) {
       Alert.alert('Error', 'Action failed. Please try again.');
     } finally {
@@ -142,51 +144,36 @@ export const OtherProfileScreen: React.FC<OtherProfileScreenProps> = ({ navigati
           {profile?.posts_count || posts.length} posts
         </Text>
 
-        {/* Action Buttons for Other Profile */}
         <View style={styles.actionButtonsRow}>
           <TouchableOpacity
             style={[
               styles.primaryBtn,
               friendStatus === 'pending' && styles.pendingBtn,
-              friendStatus === 'friends' && styles.friendsBtn,
             ]}
-            onPress={handleFriendAction}
-            disabled={actionLoading || friendStatus === 'friends'}
+            onPress={handleToggleFriendRequest}
+            disabled={actionLoading}
             activeOpacity={0.8}
           >
-            <Ionicons
-              name={
-                friendStatus === 'none'
-                  ? 'person-add-outline'
-                  : friendStatus === 'pending'
-                  ? 'close-circle-outline'
-                  : 'checkmark-done-outline'
-              }
-              size={18}
-              color={friendStatus === 'pending' ? '#050505' : '#ffffff'}
-              style={styles.btnIcon}
-            />
-            <Text
-              style={[
-                styles.primaryBtnText,
-                friendStatus === 'pending' && styles.pendingBtnText,
-              ]}
-            >
-              {friendStatus === 'none'
-                ? 'Add Friend'
-                : friendStatus === 'pending'
-                ? 'Cancel Request'
-                : 'Friends'}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.secondaryBtn}
-            onPress={() => navigation.navigate('Chat', { userId: targetUserId })}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="chatbubble-ellipses-outline" size={18} color="#050505" style={styles.btnIcon} />
-            <Text style={styles.secondaryBtnText}>Message</Text>
+            {actionLoading ? (
+              <Loader />
+            ) : (
+              <>
+                <Ionicons
+                  name={friendStatus === 'none' ? 'person-add-outline' : 'close-circle-outline'}
+                  size={18}
+                  color={friendStatus === 'pending' ? '#050505' : '#ffffff'}
+                  style={styles.btnIcon}
+                />
+                <Text
+                  style={[
+                    styles.primaryBtnText,
+                    friendStatus === 'pending' && styles.pendingBtnText,
+                  ]}
+                >
+                  {friendStatus === 'none' ? 'Add Friend' : 'Cancel Request'}
+                </Text>
+              </>
+            )}
           </TouchableOpacity>
         </View>
 
@@ -356,7 +343,6 @@ const styles = StyleSheet.create({
   },
   actionButtonsRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     marginBottom: 16,
   },
   primaryBtn: {
@@ -367,13 +353,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 6,
   },
   pendingBtn: {
     backgroundColor: '#e4e6eb',
-  },
-  friendsBtn: {
-    backgroundColor: '#42b72a',
   },
   primaryBtnText: {
     color: '#ffffff',
@@ -382,21 +364,6 @@ const styles = StyleSheet.create({
   },
   pendingBtnText: {
     color: '#050505',
-  },
-  secondaryBtn: {
-    flex: 1,
-    backgroundColor: '#e4e6eb',
-    height: 38,
-    borderRadius: 8,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 6,
-  },
-  secondaryBtnText: {
-    color: '#050505',
-    fontWeight: 'bold',
-    fontSize: 14,
   },
   btnIcon: {
     marginRight: 6,
