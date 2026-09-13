@@ -8,12 +8,11 @@ import { ForgotPasswordScreen } from '../screens/auth/ForgotPasswordScreen';
 import { MainTabs } from './MainTabs';
 
 import { ProfileScreen } from '../screens/profile/ProfileScreen';
+import { OtherProfileScreen } from '../screens/profile/OtherProfileScreen';
 import { EditProfileScreen } from '../screens/profile/EditProfileScreen';
-import { PersonalDetailsScreen } from '../screens/profile/PersonalDetailsScreen';
-import { UserAboutScreen } from '../screens/profile/UserAboutScreen';
+
 import { FriendsListScreen } from '../screens/Friends/FriendsListScreen';
 import { FindFriendsScreen } from '../screens/Friends/FindFriendsScreen';
-import { ProfilePhotosScreen } from '../screens/profile/ProfilePhotosScreen';
 import { FriendRequestsScreen } from '../screens/Friends/FriendRequestsScreen';
 
 import { GroupDetailScreen } from '../screens/groups/GroupDetailScreen';
@@ -49,12 +48,11 @@ export const AppNavigator: React.FC<AppNavigatorProps> = ({ session }) => {
             <Stack.Screen name="MainTabs" component={MainTabs} />
             
             <Stack.Screen name="Profile" component={ProfileScreen} />
+            <Stack.Screen name="OtherProfile" component={OtherProfileScreen} />
             <Stack.Screen name="EditProfile" component={EditProfileScreen} />
-            <Stack.Screen name="PersonalDetails" component={PersonalDetailsScreen} />
-            <Stack.Screen name="UserAbout" component={UserAboutScreen} />
+
             <Stack.Screen name="FriendsList" component={FriendsListScreen} />
             <Stack.Screen name="FindFriends" component={FindFriendsScreen} />
-            <Stack.Screen name="ProfilePhotos" component={ProfilePhotosScreen} />
             <Stack.Screen name="FriendRequests" component={FriendRequestsScreen} />
             
             <Stack.Screen name="GroupDetail" component={GroupDetailScreen} />
