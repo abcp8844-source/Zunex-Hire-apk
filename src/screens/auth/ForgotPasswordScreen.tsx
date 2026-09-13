@@ -9,7 +9,7 @@ interface ForgotPasswordScreenProps {
 }
 
 export const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navigation }) => {
-  const [email, email] = useState('');
+  const [email, setEmail]  = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
