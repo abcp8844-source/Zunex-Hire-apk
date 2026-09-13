@@ -48,12 +48,12 @@ export const ReactionsModal: React.FC<ReactionsModalProps> = ({
 
   useEffect(() => {
     if (visible && postId) {
+      setActiveTab('all');
       fetchReactionSummary();
       fetchUsers('all');
     }
   }, [visible, postId]);
 
-  // فیچ کریں تمام ری ایکشنز کی گنتی تاکہ فیس بک کی طرح ٹیبز بن سکیں
   const fetchReactionSummary = async () => {
     try {
       const { data, error } = await supabase
@@ -83,7 +83,7 @@ export const ReactionsModal: React.FC<ReactionsModalProps> = ({
         });
 
         const dynamicTabs: ReactionTab[] = [
-          { type: 'all', label: `All ${totalReactions}`, count: totalReactions },
+          { type: 'all', label: `All ${totalReactions || data.length}`, count: totalReactions || data.length },
         ];
 
         const sortedReactionTypes = Object.keys(counts).sort(
@@ -103,11 +103,10 @@ export const ReactionsModal: React.FC<ReactionsModalProps> = ({
         setTabs(dynamicTabs);
       }
     } catch (e) {
-      console.error("Error fetching reaction summary:", e);
+      console.error('Error fetching reaction summary:', e);
     }
   };
 
-  // یوزرز کی لسٹ اور ان کی پروفائل ڈیٹابیس سے نکالنا
   const fetchUsers = async (filterType: string) => {
     setLoading(true);
     try {
@@ -116,7 +115,7 @@ export const ReactionsModal: React.FC<ReactionsModalProps> = ({
         .select(`
           user_id,
           like, love, care, haha, wow, sad, angry,
-          auth_users:user_id ( raw_user_meta_data )
+          profiles ( full_name, avatar_url )
         `)
         .eq('post_id', postId);
 
@@ -140,11 +139,11 @@ export const ReactionsModal: React.FC<ReactionsModalProps> = ({
             else if (item.angry) rType = 'angry';
           }
 
-          const meta = item.auth_users?.raw_user_meta_data || {};
+          const profile = item.profiles || {};
           return {
             user_id: item.user_id,
-            full_name: meta.full_name || 'Facebook User',
-            avatar_url: meta.avatar_url || 'https://via.placeholder.com/150',
+            full_name: profile.full_name || 'User',
+            avatar_url: profile.avatar_url || 'https://via.placeholder.com/150',
             reaction_type: rType,
           };
         });
@@ -152,7 +151,7 @@ export const ReactionsModal: React.FC<ReactionsModalProps> = ({
         setUsers(formattedUsers);
       }
     } catch (e) {
-      console.error("Error fetching reaction users:", e);
+      console.error('Error fetching reaction users:', e);
     } finally {
       setLoading(false);
     }
@@ -170,10 +169,18 @@ export const ReactionsModal: React.FC<ReactionsModalProps> = ({
     }
   };
 
+  const renderReactionVisual = (reactionKey: string, sizeStyle: any) => {
+    const meta = FB_REACTIONS[reactionKey];
+    if (!meta) return null;
+    if (meta.icon) {
+      return <Image source={{ uri: meta.icon }} style={sizeStyle} />;
+    }
+    return <Text style={{ fontSize: sizeStyle.fontSize || 16 }}>{meta.emoji}</Text>;
+  };
+
   return (
-    <Modal visible={visible} animationType="slide" transparent={false}>
+    <Modal visible={visible} animationType="slide" transparent={false} onRequestClose={onClose}>
       <View style={styles.container}>
-        {/* ہیڈر سیکشن */}
         <View style={styles.header}>
           <TouchableOpacity onPress={onClose} style={styles.backButton}>
             <Ionicons name="chevron-back" size={26} color="#050505" />
@@ -182,7 +189,6 @@ export const ReactionsModal: React.FC<ReactionsModalProps> = ({
           <View style={{ width: 26 }} />
         </View>
 
-        {/* فیس بک جیسے اوپر والے ٹیبز (All, Like, Love وغیرہ) */}
         <View style={styles.tabContainer}>
           <FlatList
             horizontal
@@ -192,15 +198,12 @@ export const ReactionsModal: React.FC<ReactionsModalProps> = ({
             contentContainerStyle={styles.tabListContent}
             renderItem={({ item }) => {
               const isActive = activeTab === item.type;
-              const reactionInfo = FB_REACTIONS[item.type];
               return (
                 <TouchableOpacity
                   style={[styles.tabButton, isActive && styles.activeTabButton]}
                   onPress={() => handleTabChange(item.type)}
                 >
-                  {reactionInfo && (
-                    <Image source={{ uri: reactionInfo.icon }} style={styles.tabIcon} />
-                  )}
+                  {item.type !== 'all' && renderReactionVisual(item.type, { width: 18, height: 18, fontSize: 16 })}
                   <Text style={[styles.tabText, isActive && styles.activeTabText]}>
                     {item.label}
                   </Text>
@@ -210,7 +213,6 @@ export const ReactionsModal: React.FC<ReactionsModalProps> = ({
           />
         </View>
 
-        {/* لوڈنگ یا یوزرز کی لسٹ */}
         {loading ? (
           <View style={styles.loaderContainer}>
             <ActivityIndicator size="large" color="#1877f2" />
@@ -219,26 +221,23 @@ export const ReactionsModal: React.FC<ReactionsModalProps> = ({
           <FlatList
             data={users}
             keyExtractor={(item) => item.user_id}
-            renderItem={({ item }) => {
-              const userReactionInfo = FB_REACTIONS[item.reaction_type];
-              return (
-                <TouchableOpacity
-                  style={styles.userRow}
-                  onPress={() => handleUserPress(item.user_id)}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.avatarWrapper}>
-                    <Image source={{ uri: item.avatar_url }} style={styles.avatar} />
-                    {userReactionInfo && (
-                      <Image source={{ uri: userReactionInfo.icon }} style={styles.badgeIcon} />
-                    )}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={styles.userRow}
+                onPress={() => handleUserPress(item.user_id)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.avatarWrapper}>
+                  <Image source={{ uri: item.avatar_url }} style={styles.avatar} />
+                  <View style={styles.badgeContainer}>
+                    {renderReactionVisual(item.reaction_type, { width: 16, height: 16, fontSize: 13 })}
                   </View>
-                  <Text style={styles.userName} numberOfLines={1}>
-                    {item.full_name}
-                  </Text>
-                </TouchableOpacity>
-              );
-            }}
+                </View>
+                <Text style={styles.userName} numberOfLines={1}>
+                  {item.full_name}
+                </Text>
+              </TouchableOpacity>
+            )}
             contentContainerStyle={styles.listContent}
           />
         )}
@@ -273,7 +272,6 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   activeTabButton: { backgroundColor: '#e7f3ff' },
-  tabIcon: { width: 20, height: 20, borderRadius: 10 },
   tabText: { fontSize: 14, fontWeight: '600', color: '#65676b' },
   activeTabText: { color: '#1877f2' },
   loaderContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
@@ -286,15 +284,13 @@ const styles = StyleSheet.create({
   },
   avatarWrapper: { position: 'relative', marginRight: 14 },
   avatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#e4e6eb' },
-  badgeIcon: {
+  badgeContainer: {
     position: 'absolute',
     bottom: -2,
     right: -2,
-    width: 20,
-    height: 20,
+    backgroundColor: '#ffffff',
     borderRadius: 10,
-    borderWidth: 1.5,
-    borderColor: '#ffffff',
+    padding: 1,
   },
   userName: { fontSize: 16, fontWeight: '600', color: '#050505', flex: 1 },
 });
