@@ -1,4 +1,4 @@
-name: DB Sync
+name: db_sync
 
 on:
   workflow_dispatch:
@@ -10,34 +10,29 @@ jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout fresh repository state
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref_name }}
-          clean: true
+          ref: main
           fetch-depth: 0
 
-      - name: Setup Python Environment
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
-      - name: Install Dependencies
-        run: pip install supabase
+      - run: pip install supabase
 
-      - name: Run Pipeline Fix & Audit
-        run: python bad_news.py
+      - run: python bad_news.py
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
 
-      - name: Commit & Push Repaired Code
+      - name: Commit & Push Repaired Files
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add .
           if ! git diff-index --quiet HEAD; then
-            git commit -m "Automated: Repair repository pipeline and database alignment"
+            git commit -m "Automated: Relinked all repository imports"
             git pull origin main --rebase
             git push origin main
           fi
