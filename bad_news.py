@@ -1,109 +1,218 @@
 import os
 import re
 import json
+from supabase import create_client
 
 EXTENSIONS = ('.js', '.jsx', '.ts', '.tsx')
 
-TABLE_PATTERN = re.compile(
-    r"(?:from|into|update|join|table)\s*[\(\'\"]([a-zA-Z0-9_]+)[\'\"]|"
-    r"\.from\(['\"]([a-zA-Z0-9_]+)['\"]\)", 
-    re.IGNORECASE
-)
+MASTER_TABLES_SCHEMA = {
+    "profiles": [
+        "id UUID PRIMARY KEY DEFAULT gen_random_uuid()",
+        "user_id UUID UNIQUE NOT NULL",
+        "full_name TEXT",
+        "username TEXT UNIQUE",
+        "avatar_url TEXT",
+        "cover_url TEXT",
+        "bio TEXT",
+        "website TEXT",
+        "email TEXT",
+        "phone TEXT",
+        "current_city TEXT",
+        "created_at TIMESTAMPTZ DEFAULT NOW()"
+    ],
+    "posts": [
+        "id UUID PRIMARY KEY DEFAULT gen_random_uuid()",
+        "user_id UUID NOT NULL",
+        "group_id UUID",
+        "image_url TEXT",
+        "content TEXT",
+        "created_at TIMESTAMPTZ DEFAULT NOW()"
+    ],
+    "groups": [
+        "id UUID PRIMARY KEY DEFAULT gen_random_uuid()",
+        "admin_id UUID NOT NULL",
+        "name TEXT NOT NULL",
+        "avatar_url TEXT",
+        "created_at TIMESTAMPTZ DEFAULT NOW()"
+    ],
+    "group_members": [
+        "id UUID PRIMARY KEY DEFAULT gen_random_uuid()",
+        "group_id UUID NOT NULL",
+        "user_id UUID NOT NULL",
+        "created_at TIMESTAMPTZ DEFAULT NOW()"
+    ],
+    "scheduled_posts": [
+        "id UUID PRIMARY KEY DEFAULT gen_random_uuid()",
+        "user_id UUID NOT NULL",
+        "group_id UUID",
+        "scheduled_at TIMESTAMPTZ NOT NULL",
+        "created_at TIMESTAMPTZ DEFAULT NOW()"
+    ],
+    "notifications": [
+        "id UUID PRIMARY KEY DEFAULT gen_random_uuid()",
+        "sender_id UUID NOT NULL",
+        "receiver_id UUID NOT NULL",
+        "reference_id UUID",
+        "avatar_url TEXT",
+        "full_name TEXT",
+        "created_at TIMESTAMPTZ DEFAULT NOW()"
+    ],
+    "comments": [
+        "id UUID PRIMARY KEY DEFAULT gen_random_uuid()",
+        "post_id UUID NOT NULL",
+        "user_id UUID NOT NULL",
+        "comment TEXT NOT NULL",
+        "created_at TIMESTAMPTZ DEFAULT NOW()"
+    ],
+    "likes": [
+        "id UUID PRIMARY KEY DEFAULT gen_random_uuid()",
+        "post_id UUID NOT NULL",
+        "user_id UUID NOT NULL",
+        "created_at TIMESTAMPTZ DEFAULT NOW()"
+    ],
+    "shares": [
+        "id UUID PRIMARY KEY DEFAULT gen_random_uuid()",
+        "post_id UUID NOT NULL",
+        "user_id UUID NOT NULL",
+        "created_at TIMESTAMPTZ DEFAULT NOW()"
+    ],
+    "saved_posts": [
+        "id UUID PRIMARY KEY DEFAULT gen_random_uuid()",
+        "post_id UUID NOT NULL",
+        "user_id UUID NOT NULL",
+        "created_at TIMESTAMPTZ DEFAULT NOW()"
+    ],
+    "reports": [
+        "id UUID PRIMARY KEY DEFAULT gen_random_uuid()",
+        "reporter_id UUID NOT NULL",
+        "post_id UUID",
+        "reason TEXT",
+        "created_at TIMESTAMPTZ DEFAULT NOW()"
+    ],
+    "friend_requests": [
+        "id UUID PRIMARY KEY DEFAULT gen_random_uuid()",
+        "sender_id UUID NOT NULL",
+        "receiver_id UUID NOT NULL",
+        "status TEXT DEFAULT 'pending'",
+        "created_at TIMESTAMPTZ DEFAULT NOW()"
+    ],
+    "friends": [
+        "id UUID PRIMARY KEY DEFAULT gen_random_uuid()",
+        "user_id UUID NOT NULL",
+        "friend_id UUID NOT NULL",
+        "created_at TIMESTAMPTZ DEFAULT NOW()"
+    ],
+    "blocked_users": [
+        "id UUID PRIMARY KEY DEFAULT gen_random_uuid()",
+        "user_id UUID NOT NULL",
+        "blocked_id UUID NOT NULL",
+        "created_at TIMESTAMPTZ DEFAULT NOW()"
+    ],
+    "activity_logs": [
+        "id UUID PRIMARY KEY DEFAULT gen_random_uuid()",
+        "user_id UUID NOT NULL",
+        "action TEXT NOT NULL",
+        "created_at TIMESTAMPTZ DEFAULT NOW()"
+    ]
+}
 
-COLUMN_PATTERN = re.compile(
-    r'\b([a-z0-9_]+(?:_id|_name|_url|_city|_at|_by|full_name|username|bio|website|email|phone|current_city|avatar_url|cover_url))\b', 
-    re.IGNORECASE
-)
+def get_supabase_client():
+    url = os.environ.get("SUPABASE_URL")
+    key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or os.environ.get("SUPABASE_ANON_KEY")
+    if not url or not key:
+        raise ValueError("Missing SUPABASE_URL or Supabase Key environment variables.")
+    return create_client(url, key)
 
-def extract_schema_from_file(file_path):
-    tables = set()
-    columns = set()
-    try:
-        with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-            content = f.read()
-
-        for match in TABLE_PATTERN.findall(content):
-            tbl = match[0] or match[1]
-            if tbl and tbl.lower() != 'react':
-                tables.add(tbl)
-
-        cols = COLUMN_PATTERN.findall(content)
-        for col in cols:
-            columns.add(col)
-    except Exception:
-        pass
-    return tables, columns
-
-def run_services_comparison_audit(src_dir="./src"):
-    services_dir = os.path.join(src_dir, "services")
-    
-    if not os.path.exists(src_dir) or not os.path.exists(services_dir):
-        print(json.dumps({"error": "Directory structure invalid. 'src' or 'src/services' missing."}, indent=2))
-        return
-
-    # Step 1: Services Folder Master Schema Extract
-    services_tables = set()
-    services_columns = set()
-    services_files_map = {}
-
-    for root, _, files in os.walk(services_dir):
-        for file in files:
-            if file.endswith(EXTENSIONS):
-                file_path = os.path.join(root, file)
-                t, c = extract_schema_from_file(file_path)
-                services_tables.update(t)
-                services_columns.update(c)
-                rel_path = os.path.relpath(file_path, src_dir).replace('\\', '/')
-                services_files_map[rel_path] = {"tables": sorted(list(t)), "columns": sorted(list(c))}
-
-    # Step 2: Rest of Repository Schema Extract
-    other_tables = set()
-    other_columns = set()
-    other_files_map = {}
+def fix_frontend_repository_code(src_dir="./src"):
+    modified_files = 0
+    replacements = {
+        r"\byourwebsite\b": "website",
+        r"\bsetBio\b": "bio",
+        r"\bsetEmail\b": "email",
+        r"\bsetPhone\b": "phone",
+        r"\bsetUsername\b": "username",
+        r"\bsetWebsite\b": "website"
+    }
 
     for root, _, files in os.walk(src_dir):
-        if os.path.commonpath([root, services_dir]) == services_dir:
-            continue
-
         for file in files:
             if file.endswith(EXTENSIONS):
                 file_path = os.path.join(root, file)
-                t, c = extract_schema_from_file(file_path)
-                other_tables.update(t)
-                other_columns.update(c)
-                
-                if t or c:
-                    rel_path = os.path.relpath(file_path, src_dir).replace('\\', '/')
-                    other_files_map[rel_path] = {"tables": sorted(list(t)), "columns": sorted(list(c))}
+                try:
+                    with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                        content = f.read()
 
-    # Step 3: Compare & Find Discrepancies
-    missing_tables_in_repo = sorted(list(services_tables - other_tables))
-    missing_columns_in_repo = sorted(list(services_columns - other_columns))
-    extra_tables_in_repo = sorted(list(other_tables - services_tables))
-    extra_columns_in_repo = sorted(list(other_columns - services_columns))
+                    new_content = content
+                    for reg_pattern, replace_val in replacements.items():
+                        new_content = re.sub(reg_pattern, replace_val, new_content)
 
+                    if new_content != content:
+                        with open(file_path, 'w', encoding='utf-8') as f:
+                            f.write(new_content)
+                        modified_files += 1
+                except Exception:
+                    pass
+    return modified_files
+
+def drop_and_rebuild_database_schema(supabase):
+    dropped_tables = []
+    created_tables = []
+    errors = []
+
+    # Drop existing tables with CASCADE to clean all foreign keys and dependencies
+    for table in MASTER_TABLES_SCHEMA.keys():
+        try:
+            drop_sql = f"DROP TABLE IF EXISTS public.{table} CASCADE;"
+            supabase.rpc('execute_sql', {'sql': drop_sql}).execute()
+            dropped_tables.append(table)
+        except Exception as e:
+            errors.append(f"Drop Table Error [{table}]: {str(e)}")
+
+    # Recreate all tables cleanly
+    for table, schema_cols in MASTER_TABLES_SCHEMA.items():
+        try:
+            cols_def = ", ".join(schema_cols)
+            create_sql = f"CREATE TABLE public.{table} ({cols_def});"
+            supabase.rpc('execute_sql', {'sql': create_sql}).execute()
+            created_tables.append(table)
+        except Exception as e:
+            errors.append(f"Create Table Error [{table}]: {str(e)}")
+
+    return dropped_tables, created_tables, errors
+
+def run_clean_rebuild_pipeline():
+    src_dir = "./src"
     report = {
-        "audit_type": "SERVICES_VS_REPOSITORY_COMPARISON",
-        "services_master_truth": {
-            "total_tables": len(services_tables),
-            "tables": sorted(list(services_tables)),
-            "total_columns": len(services_columns),
-            "columns": sorted(list(services_columns))
-        },
-        "discrepancies": {
-            "defined_in_services_but_missing_in_repo": {
-                "tables": missing_tables_in_repo,
-                "columns": missing_columns_in_repo
-            },
-            "used_in_repo_but_missing_in_services": {
-                "tables": extra_tables_in_repo,
-                "columns": extra_columns_in_repo
-            }
-        },
-        "repository_files_breakdown": other_files_map
+        "pipeline_status": "STARTING",
+        "frontend_fixed_files": 0,
+        "database_connection": False,
+        "dropped_tables": [],
+        "created_tables": [],
+        "errors": []
     }
+
+    report["frontend_fixed_files"] = fix_frontend_repository_code(src_dir)
+
+    try:
+        supabase = get_supabase_client()
+        report["database_connection"] = True
+    except Exception as e:
+        report["pipeline_status"] = "FAILED: DATABASE AUTH ERROR"
+        report["errors"].append(str(e))
+        print(json.dumps(report, indent=2))
+        return
+
+    dropped, created, errors = drop_and_rebuild_database_schema(supabase)
+    report["dropped_tables"] = dropped
+    report["created_tables"] = created
+    report["errors"] = errors
+
+    if not errors:
+        report["pipeline_status"] = "SUCCESS: Code repaired, Database wiped and rebuilt successfully."
+    else:
+        report["pipeline_status"] = "COMPLETED WITH WARNINGS"
 
     print(json.dumps(report, indent=2))
 
 if __name__ == "__main__":
-    run_services_comparison_audit()
+    run_clean_rebuild_pipeline()
