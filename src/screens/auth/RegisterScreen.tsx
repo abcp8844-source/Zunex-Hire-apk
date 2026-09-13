@@ -51,7 +51,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) =>
 
           {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-          {/* Name Fields (First Name & Last Name like Facebook) */}
+          {/* name Fields (First name & Last name like Facebook) */}
           <View style={styles.nameRow}>
             <TextInput
               style={[styles.input, styles.halfInput]}

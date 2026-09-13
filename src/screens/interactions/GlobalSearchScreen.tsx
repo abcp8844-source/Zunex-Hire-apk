@@ -162,7 +162,7 @@ export const GlobalSearchScreen: React.FC<GlobalSearchScreenProps> = ({ navigati
             ) : (
               <View style={styles.emptyContainer}>
                 <Ionicons name="compass-outline" size={50} color={theme.colors.textSecondary} />
-                <Text style={styles.emptyText}>Type anything to search on Zunexhire</Text>
+                <Text style={styles.emptyText}>type anything to search on Zunexhire</Text>
               </View>
             )
           }

@@ -33,9 +33,9 @@ export const CreateGroupScreen: React.FC<CreateGroupScreenProps> = ({ navigation
         </TouchableOpacity>
       </View>
       <View style={styles.form}>
-        <Text style={styles.label}>Group Name</Text>
-        <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="Name your group" />
-        <Text style={styles.label}>Description</Text>
+        <Text style={styles.label}>Group name</Text>
+        <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="name your group" />
+        <Text style={styles.label}>description</Text>
         <TextInput style={styles.input} value={description} onChangeText={setDescription} placeholder="What is this group about?" multiline />
       </View>
     </View>

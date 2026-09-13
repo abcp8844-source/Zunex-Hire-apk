@@ -32,7 +32,7 @@ export const OtherProfileScreen: React.FC<OtherProfileScreenProps> = ({ navigati
 
   const loadProfileData = useCallback(async () => {
     if (!targetUserId) {
-      Alert.alert('Error', 'User ID missing.');
+      Alert.alert('Error', 'User id missing.');
       navigation.goBack();
       return;
     }

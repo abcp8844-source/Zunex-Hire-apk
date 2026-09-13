@@ -26,7 +26,7 @@ export const GroupSettingsScreen: React.FC<GroupSettingsScreenProps> = ({ naviga
         onMenuPress={() => navigation.navigate('Menu')}
       />
       <View style={styles.form}>
-        <Text style={styles.label}>Update Group Name</Text>
+        <Text style={styles.label}>Update Group name</Text>
         <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="New name" />
         <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
           <Text style={styles.saveButtonText}>Save Changes</Text>

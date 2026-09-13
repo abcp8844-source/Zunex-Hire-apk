@@ -29,7 +29,7 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ navigation }) => {
             style={styles.menuItem}
             onPress={() => navigation.navigate('Settings')}
           >
-            <Text style={styles.menuText}>⚙️ Settings & Privacy</Text>
+            <Text style={styles.menuText}>⚙️ Settings & privacy</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.menuItem}
