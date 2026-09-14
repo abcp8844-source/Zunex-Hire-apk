@@ -20,7 +20,7 @@ export const signInUser = async (email: string, pass: string) => {
   });
   
   if (error) {
-    throw new Error('Invalid email or password. Please try again.');
+    throw new Error(error.message || 'Invalid email or password. Please try again.');
   }
   return data;
 };
@@ -38,7 +38,7 @@ export const signUpUser = async (email: string, pass: string, fullName: string) 
     if (error.message.includes('already registered')) {
       throw new Error('This email address is already in use.');
     }
-    throw new Error('Unable to create account. Please check your details.');
+    throw new Error(error.message || 'Unable to create account. Please check your details.');
   }
   return data;
 };
@@ -46,7 +46,7 @@ export const signUpUser = async (email: string, pass: string, fullName: string) 
 export const resetPassword = async (email: string) => {
   const { data, error } = await supabase.auth.resetPasswordForEmail(email.trim());
   if (error) {
-    throw new Error('Unable to send password reset instructions. Please try again later.');
+    throw new Error(error.message || 'Unable to send password reset instructions. Please try again later.');
   }
   return data;
 };
@@ -56,7 +56,7 @@ export const uploadToCloudinary = async (fileUri: string, folder: string) => {
   const uploadPreset = process.env.EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
 
   if (!cloudName || !uploadPreset) {
-    throw new Error('Cloudinary environment variables missing in authService');
+    throw new Error('Cloudinary environment variables missing: EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME or EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET is missing.');
   }
 
   const cleanUri = fileUri.split('?')[0];
@@ -93,11 +93,18 @@ export const uploadToCloudinary = async (fileUri: string, folder: string) => {
     const data = await response.json();
 
     if (!response.ok) {
-      throw new Error(data.error?.message || 'Cloudinary upload failed');
+      const errorMessage = data?.error?.message || `Cloudinary upload failed with status ${response.status}`;
+      console.error('Cloudinary API Response Error:', errorMessage);
+      throw new Error(errorMessage);
+    }
+
+    if (!data.secure_url) {
+      throw new Error('Cloudinary response missing secure_url parameter');
     }
 
     return data.secure_url;
   } catch (err: any) {
-    throw new Error(err.message || 'Network request failed for image upload');
+    console.error('Upload Error Details:', err);
+    throw new Error(err.message || 'Network failure during media upload');
   }
 };
