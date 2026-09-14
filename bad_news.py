@@ -1,118 +1,24 @@
 import os
-import re
 import json
+import re
+import urllib.request
+import urllib.parse
 from supabase import create_client
 
-EXTENSIONS = ('.js', '.jsx', '.ts', '.tsx')
-
-MASTER_TABLES_SCHEMA = {
+TARGET_SCHEMAS = {
     "profiles": [
         "id UUID PRIMARY KEY DEFAULT gen_random_uuid()",
         "user_id UUID UNIQUE NOT NULL",
         "full_name TEXT",
-        "username TEXT UNIQUE",
         "avatar_url TEXT",
         "cover_url TEXT",
-        "bio TEXT",
-        "website TEXT",
-        "email TEXT",
-        "phone TEXT",
-        "current_city TEXT",
         "created_at TIMESTAMPTZ DEFAULT NOW()"
     ],
     "posts": [
         "id UUID PRIMARY KEY DEFAULT gen_random_uuid()",
         "user_id UUID NOT NULL",
-        "group_id UUID",
         "image_url TEXT",
         "content TEXT",
-        "created_at TIMESTAMPTZ DEFAULT NOW()"
-    ],
-    "groups": [
-        "id UUID PRIMARY KEY DEFAULT gen_random_uuid()",
-        "admin_id UUID NOT NULL",
-        "name TEXT NOT NULL",
-        "avatar_url TEXT",
-        "created_at TIMESTAMPTZ DEFAULT NOW()"
-    ],
-    "group_members": [
-        "id UUID PRIMARY KEY DEFAULT gen_random_uuid()",
-        "group_id UUID NOT NULL",
-        "user_id UUID NOT NULL",
-        "created_at TIMESTAMPTZ DEFAULT NOW()"
-    ],
-    "scheduled_posts": [
-        "id UUID PRIMARY KEY DEFAULT gen_random_uuid()",
-        "user_id UUID NOT NULL",
-        "group_id UUID",
-        "scheduled_at TIMESTAMPTZ NOT NULL",
-        "created_at TIMESTAMPTZ DEFAULT NOW()"
-    ],
-    "notifications": [
-        "id UUID PRIMARY KEY DEFAULT gen_random_uuid()",
-        "sender_id UUID NOT NULL",
-        "receiver_id UUID NOT NULL",
-        "reference_id UUID",
-        "avatar_url TEXT",
-        "full_name TEXT",
-        "created_at TIMESTAMPTZ DEFAULT NOW()"
-    ],
-    "comments": [
-        "id UUID PRIMARY KEY DEFAULT gen_random_uuid()",
-        "post_id UUID NOT NULL",
-        "user_id UUID NOT NULL",
-        "comment TEXT NOT NULL",
-        "created_at TIMESTAMPTZ DEFAULT NOW()"
-    ],
-    "likes": [
-        "id UUID PRIMARY KEY DEFAULT gen_random_uuid()",
-        "post_id UUID NOT NULL",
-        "user_id UUID NOT NULL",
-        "reaction_type TEXT DEFAULT 'like'",
-        "created_at TIMESTAMPTZ DEFAULT NOW()"
-    ],
-    "shares": [
-        "id UUID PRIMARY KEY DEFAULT gen_random_uuid()",
-        "post_id UUID NOT NULL",
-        "user_id UUID NOT NULL",
-        "created_at TIMESTAMPTZ DEFAULT NOW()"
-    ],
-    "saved_posts": [
-        "id UUID PRIMARY KEY DEFAULT gen_random_uuid()",
-        "post_id UUID NOT NULL",
-        "user_id UUID NOT NULL",
-        "created_at TIMESTAMPTZ DEFAULT NOW()"
-    ],
-    "reports": [
-        "id UUID PRIMARY KEY DEFAULT gen_random_uuid()",
-        "reporter_id UUID NOT NULL",
-        "post_id UUID",
-        "reason TEXT",
-        "created_at TIMESTAMPTZ DEFAULT NOW()"
-    ],
-    "friend_requests": [
-        "id UUID PRIMARY KEY DEFAULT gen_random_uuid()",
-        "sender_id UUID NOT NULL",
-        "receiver_id UUID NOT NULL",
-        "status TEXT DEFAULT 'pending'",
-        "created_at TIMESTAMPTZ DEFAULT NOW()"
-    ],
-    "friends": [
-        "id UUID PRIMARY KEY DEFAULT gen_random_uuid()",
-        "user_id UUID NOT NULL",
-        "friend_id UUID NOT NULL",
-        "created_at TIMESTAMPTZ DEFAULT NOW()"
-    ],
-    "blocked_users": [
-        "id UUID PRIMARY KEY DEFAULT gen_random_uuid()",
-        "user_id UUID NOT NULL",
-        "blocked_id UUID NOT NULL",
-        "created_at TIMESTAMPTZ DEFAULT NOW()"
-    ],
-    "activity_logs": [
-        "id UUID PRIMARY KEY DEFAULT gen_random_uuid()",
-        "user_id UUID NOT NULL",
-        "action TEXT NOT NULL",
         "created_at TIMESTAMPTZ DEFAULT NOW()"
     ]
 }
@@ -121,86 +27,136 @@ def get_supabase_client():
     url = os.environ.get("SUPABASE_URL")
     key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or os.environ.get("SUPABASE_ANON_KEY")
     if not url or not key:
-        raise ValueError("Missing SUPABASE_URL or Supabase Key environment variables.")
+        raise ValueError("SUPABASE_URL or Supabase Key missing in environment.")
     return create_client(url, key)
 
-def fix_frontend_repository_code(src_dir="./src"):
-    modified_files = 0
-    replacements = {
-        r"\byourwebsite\b": "website",
-        r"\bsetBio\b": "bio",
-        r"\bsetEmail\b": "email",
-        r"\bsetPhone\b": "phone",
-        r"\bsetUsername\b": "username",
-        r"\bsetWebsite\b": "website"
-    }
+def get_cloudinary_credentials():
+    cloud_name = (
+        os.environ.get("CLOUDINARY_CLOUD_NAME") or 
+        os.environ.get("EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME") or 
+        os.environ.get("NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME")
+    )
+    upload_preset = (
+        os.environ.get("CLOUDINARY_UPLOAD_PRESET") or 
+        os.environ.get("EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET")
+    )
+    return cloud_name, upload_preset
+
+def audit_frontend_code(src_dir="./src"):
+    code_issues = []
+    cloud_name, upload_preset = get_cloudinary_credentials()
+
+    if not os.path.exists(src_dir):
+        return ["SRC directory not found."]
 
     for root, _, files in os.walk(src_dir):
         for file in files:
-            if file.endswith(EXTENSIONS):
+            if file.endswith(('.js', '.jsx', '.ts', '.tsx')):
                 file_path = os.path.join(root, file)
                 try:
                     with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
                         content = f.read()
 
-                    new_content = content
-                    for reg_pattern, replace_val in replacements.items():
-                        new_content = re.sub(reg_pattern, replace_val, new_content)
+                    if "cloudinary" in content.lower() or "upload" in content.lower():
+                        if "catch" in content and "console.error" not in content and "Alert" not in content:
+                            code_issues.append(f"Silent catch block detected: {file_path}")
 
-                    if new_content != content:
-                        with open(file_path, 'w', encoding='utf-8') as f:
-                            f.write(new_content)
-                        modified_files += 1
-                except Exception:
-                    pass
-    return modified_files
+                        if "avatar_url" not in content and "cover_url" not in content and "image_url" not in content:
+                            code_issues.append(f"Upload logic missing correct Supabase database column payload: {file_path}")
 
-def create_database_schema(supabase):
-    created_tables = []
-    errors = []
+                        if cloud_name and cloud_name not in content and "process.env" not in content and "EXPO_PUBLIC" not in content:
+                            code_issues.append(f"Hardcoded or mismatched Cloudinary Name in: {file_path}")
 
-    for table, schema_cols in MASTER_TABLES_SCHEMA.items():
-        try:
-            cols_def = ", ".join(schema_cols)
-            create_sql = f"CREATE TABLE public.{table} ({cols_def});"
-            supabase.rpc('exec_sql', {'sql': create_sql}).execute()
-            created_tables.append(table)
-        except Exception as e:
-            errors.append(f"Create Table Error [{table}]: {str(e)}")
+                except Exception as e:
+                    code_issues.append(f"Error reading file {file_path}: {str(e)}")
 
-    return created_tables, errors
+    return code_issues
 
-def run_clean_rebuild_pipeline():
-    src_dir = "./src"
+def test_cloudinary_upload():
+    cloud_name, upload_preset = get_cloudinary_credentials()
     report = {
-        "pipeline_status": "STARTING",
-        "frontend_fixed_files": 0,
-        "database_connection": False,
-        "created_tables": [],
-        "errors": []
+        "cloud_name": cloud_name if cloud_name else "MISSING",
+        "upload_preset": upload_preset if upload_preset else "MISSING",
+        "status": "FAILED",
+        "error": None
     }
 
-    report["frontend_fixed_files"] = fix_frontend_repository_code(src_dir)
+    if not cloud_name or not upload_preset:
+        report["error"] = "CLOUDINARY_CLOUD_NAME or CLOUDINARY_UPLOAD_PRESET is missing from environment secrets."
+        return report
+
+    url = f"https://api.cloudinary.com/v1_1/{cloud_name}/image/upload"
+    tiny_pixel = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+    
+    payload = urllib.parse.urlencode({
+        "file": tiny_pixel,
+        "upload_preset": upload_preset
+    }).encode("utf-8")
+
+    try:
+        req = urllib.request.Request(url, data=payload, method="POST")
+        with urllib.request.urlopen(req) as response:
+            res_data = json.loads(response.read().decode("utf-8"))
+            if "secure_url" in res_data:
+                report["status"] = "SUCCESS"
+                report["test_image_url"] = res_data["secure_url"]
+            else:
+                report["error"] = "Upload responded without secure_url."
+    except Exception as e:
+        report["error"] = f"Cloudinary HTTP Error: {str(e)}"
+
+    return report
+
+def audit_database_tables(supabase):
+    db_report = {"tables": {}, "errors": []}
+
+    for table_name, schema_cols in TARGET_SCHEMAS.items():
+        try:
+            cols_def = ", ".join(schema_cols)
+            create_sql = f"CREATE TABLE IF NOT EXISTS public.{table_name} ({cols_def});"
+            supabase.rpc('exec_sql', {'sql': create_sql}).execute()
+            db_report["tables"][table_name] = "Ready"
+        except Exception:
+            try:
+                supabase.table(table_name).select("id").limit(1).execute()
+                db_report["tables"][table_name] = "Accessible"
+            except Exception as e:
+                db_report["tables"][table_name] = "FAILED"
+                db_report["errors"].append(f"Table [{table_name}] Error: {str(e)}")
+
+    return db_report
+
+def run_image_system_audit():
+    final_report = {
+        "status": "STARTING",
+        "cloudinary_test": {},
+        "database_audit": {},
+        "codebase_audit": [],
+        "summary_of_issues": []
+    }
+
+    final_report["cloudinary_test"] = test_cloudinary_upload()
+    if final_report["cloudinary_test"]["status"] == "FAILED":
+        final_report["summary_of_issues"].append(f"Cloudinary: {final_report['cloudinary_test']['error']}")
 
     try:
         supabase = get_supabase_client()
-        report["database_connection"] = True
+        final_report["database_audit"] = audit_database_tables(supabase)
+        if final_report["database_audit"]["errors"]:
+            final_report["summary_of_issues"].extend(final_report["database_audit"]["errors"])
     except Exception as e:
-        report["pipeline_status"] = "FAILED: DATABASE AUTH ERROR"
-        report["errors"].append(str(e))
-        print(json.dumps(report, indent=2))
-        return
+        final_report["summary_of_issues"].append(f"Supabase Connection Failed: {str(e)}")
 
-    created, errors = create_database_schema(supabase)
-    report["created_tables"] = created
-    report["errors"] = errors
+    final_report["codebase_audit"] = audit_frontend_code("./src")
+    if final_report["codebase_audit"]:
+        final_report["summary_of_issues"].extend(final_report["codebase_audit"])
 
-    if not errors:
-        report["pipeline_status"] = "SUCCESS: Code repaired and Database tables created successfully."
+    if not final_report["summary_of_issues"]:
+        final_report["status"] = "SUCCESS: Image pipeline, Database, and Frontend Code are synced."
     else:
-        report["pipeline_status"] = "COMPLETED WITH WARNINGS"
+        final_report["status"] = "ISSUES DETECTED"
 
-    print(json.dumps(report, indent=2))
+    print(json.dumps(final_report, indent=2))
 
 if __name__ == "__main__":
-    run_clean_rebuild_pipeline()
+    run_image_system_audit()
