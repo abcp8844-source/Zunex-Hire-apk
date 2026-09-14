@@ -1,6 +1,5 @@
-import { Loader } from '../../components/Loader';
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet, Modal, ScrollView, Dimensions } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet, Modal, ScrollView, Dimensions, ActivityIndicator } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { createPost } from '../../services/postService';
@@ -67,7 +66,7 @@ export const CreatePostScreen: React.FC<CreatePostScreenProps> = ({ onClose, onP
     if (!content.trim() && !image) return;
     setLoading(true);
     try {
-      await createPost(content, image, audience);
+      await createPost(content, image || undefined);
       setLoading(false);
       onPostCreated();
     } catch (error) {
@@ -187,7 +186,7 @@ export const CreatePostScreen: React.FC<CreatePostScreenProps> = ({ onClose, onP
 
             <View style={styles.finalPostContainer}>
               <TouchableOpacity style={styles.finalPostBtn} onPress={handleFinalPost} disabled={loading} activeOpacity={0.8}>
-                {loading ? <Loader /> : <Text style={styles.finalPostBtnText}>Post Now</Text>}
+                {loading ? <ActivityIndicator color="#ffffff" /> : <Text style={styles.finalPostBtnText}>Post Now</Text>}
               </TouchableOpacity>
             </View>
           </>
