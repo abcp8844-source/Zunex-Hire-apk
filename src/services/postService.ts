@@ -1,4 +1,7 @@
 import { supabase } from './authService';
+import { uploadMedia } from './userService';
+
+export { supabase };
 
 export const fetchFeedPosts = async (page: number = 0, limit: number = 10) => {
   const user = (await supabase.auth.getUser()).data.user;
@@ -57,9 +60,15 @@ export const fetchFeedPosts = async (page: number = 0, limit: number = 10) => {
   }));
 };
 
-export const createPost = async (content: string, imageUrl?: string, groupId?: string) => {
+export const createPost = async (content: string, imageUri?: string, groupId?: string) => {
   const user = (await supabase.auth.getUser()).data.user;
   if (!user) throw new Error('Authentication required');
+
+  let imageUrl: string | null = null;
+
+  if (imageUri) {
+    imageUrl = await uploadMedia(imageUri, 'posts');
+  }
 
   const { data, error } = await supabase
     .from('posts')
@@ -67,7 +76,7 @@ export const createPost = async (content: string, imageUrl?: string, groupId?: s
       {
         user_id: user.id,
         content: content.trim(),
-        image_url: imageUrl || null,
+        image_url: imageUrl,
         group_id: groupId || null,
       },
     ])
@@ -77,13 +86,19 @@ export const createPost = async (content: string, imageUrl?: string, groupId?: s
   return data;
 };
 
-export const updatePost = async (postId: string, updates: Record<string, any>) => {
+export const updatePost = async (postId: string, updates: Record<string, any>, newImageUri?: string) => {
   const user = (await supabase.auth.getUser()).data.user;
   if (!user) throw new Error('Authentication required');
 
+  const finalUpdates = { ...updates };
+
+  if (newImageUri) {
+    finalUpdates.image_url = await uploadMedia(newImageUri, 'posts');
+  }
+
   const { data, error } = await supabase
     .from('posts')
-    .update(updates)
+    .update(finalUpdates)
     .eq('id', postId)
     .eq('user_id', user.id)
     .select();
