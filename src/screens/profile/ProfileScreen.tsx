@@ -5,7 +5,6 @@ import {
   StyleSheet,
   FlatList,
   TouchableOpacity,
-  Alert,
   RefreshControl,
   Image,
   SafeAreaView,
@@ -47,7 +46,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
         setPage(1);
       }
     } catch (error: any) {
-      Alert.alert('Error', 'Unable to load profile data.');
+      console.error('Failed to load profile data:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -78,7 +77,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
         setHasMorePosts(false);
       }
     } catch (error) {
-      console.error(error);
+      console.error('Failed to load more posts:', error);
     } finally {
       setLoadingMore(false);
     }
