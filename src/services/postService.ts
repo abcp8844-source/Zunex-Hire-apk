@@ -9,7 +9,7 @@ export const fetchFeedPosts = async (page: number = 0, limit: number = 10) => {
     .from('posts')
     .select(`
       *,
-      profiles(full_name, avatar_url),
+      profiles!user_id(full_name, avatar_url),
       likes(count),
       comments(count),
       shares(count)
@@ -25,22 +25,13 @@ export const fetchFeedPosts = async (page: number = 0, limit: number = 10) => {
     
     const { data: userLikes } = await supabase
       .from('likes')
-      .select('post_id, like, love, care, haha, wow, sad, angry')
+      .select('post_id, reaction_type')
       .eq('user_id', user.id)
       .in('post_id', postIds);
 
     const userReactionMap = new Map();
     userLikes?.forEach((l) => {
-      let rType = 'like';
-      if (l.love) rType = 'love';
-      else if (l.care) rType = 'care';
-      else if (l.haha) rType = 'haha';
-      else if (l.wow) rType = 'wow';
-      else if (l.sad) rType = 'sad';
-      else if (l.angry) rType = 'angry';
-      else if (l.like) rType = 'like';
-
-      userReactionMap.set(l.post_id, { isLiked: true, reactionType: rType });
+      userReactionMap.set(l.post_id, { isLiked: true, reactionType: l.reaction_type || 'like' });
     });
 
     return data.map((post) => {
@@ -86,7 +77,7 @@ export const createPost = async (content: string, imageUrl?: string, groupId?: s
   return data;
 };
 
-export const updatePost = async (postId: string, updates: any) => {
+export const updatePost = async (postId: string, updates: Record<string, any>) => {
   const user = (await supabase.auth.getUser()).data.user;
   if (!user) throw new Error('Authentication required');
 
@@ -119,32 +110,33 @@ export const toggleLike = async (postId: string, reactionType: string = 'like', 
   const user = (await supabase.auth.getUser()).data.user;
   if (!user) return;
 
-  const reactionPayload = {
-    post_id: postId,
-    user_id: user.id,
-    like: reactionType === 'like',
-    love: reactionType === 'love',
-    care: reactionType === 'care',
-    haha: reactionType === 'haha',
-    wow: reactionType === 'wow',
-    sad: reactionType === 'sad',
-    angry: reactionType === 'angry',
-  };
-
   const { error } = await supabase
     .from('likes')
-    .upsert(reactionPayload, { onConflict: 'post_id,user_id' });
+    .upsert(
+      {
+        post_id: postId,
+        user_id: user.id,
+        reaction_type: reactionType,
+      },
+      { onConflict: 'post_id,user_id' }
+    );
 
   if (error) throw error;
 
   if (postOwnerId && postOwnerId !== user.id) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('full_name, avatar_url')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
     await supabase.from('notifications').insert([
       {
         receiver_id: postOwnerId,
         sender_id: user.id,
-        type: 'like',
-        content: `reacted ${reactionType} to your post.`,
         reference_id: postId,
+        full_name: profile?.full_name || null,
+        avatar_url: profile?.avatar_url || null,
       },
     ]);
   }
@@ -155,7 +147,7 @@ export const toggleLikePost = toggleLike;
 export const fetchComments = async (postId: string) => {
   const { data, error } = await supabase
     .from('comments')
-    .select('*, profiles(full_name, avatar_url)')
+    .select('*, profiles!user_id(full_name, avatar_url)')
     .eq('post_id', postId)
     .order('created_at', { ascending: true });
 
@@ -173,7 +165,7 @@ export const addComment = async (postId: string, text: string, postOwnerId?: str
       {
         post_id: postId,
         user_id: user.id,
-        content: text.trim(),
+        comment: text.trim(),
       },
     ])
     .select();
@@ -181,13 +173,19 @@ export const addComment = async (postId: string, text: string, postOwnerId?: str
   if (error) throw error;
 
   if (postOwnerId && postOwnerId !== user.id) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('full_name, avatar_url')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
     await supabase.from('notifications').insert([
       {
         receiver_id: postOwnerId,
         sender_id: user.id,
-        type: 'comment',
-        content: 'commented on your post.',
         reference_id: postId,
+        full_name: profile?.full_name || null,
+        avatar_url: profile?.avatar_url || null,
       },
     ]);
   }
@@ -209,13 +207,19 @@ export const sharePost = async (postId: string, postOwnerId?: string) => {
   if (error) throw error;
 
   if (postOwnerId && postOwnerId !== user.id) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('full_name, avatar_url')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
     await supabase.from('notifications').insert([
       {
         receiver_id: postOwnerId,
         sender_id: user.id,
-        type: 'share',
-        content: 'shared your post.',
         reference_id: postId,
+        full_name: profile?.full_name || null,
+        avatar_url: profile?.avatar_url || null,
       },
     ]);
   }
@@ -255,7 +259,7 @@ export const reportPost = async (postId: string, reason: string = 'Inappropriate
 export const searchPosts = async (query: string) => {
   const { data, error } = await supabase
     .from('posts')
-    .select('*, profiles(full_name, avatar_url), likes(count), comments(count)')
+    .select('*, profiles!user_id(full_name, avatar_url), likes(count), comments(count)')
     .ilike('content', `%${query}%`)
     .order('created_at', { ascending: false });
 
