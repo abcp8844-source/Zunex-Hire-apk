@@ -70,29 +70,38 @@ export const fetchNonFriends = async (page: number = 0, limit: number = 20) => {
 };
 
 export const uploadMedia = async (fileUri: string, folder: string) => {
-  const user = (await supabase.auth.getUser()).data.user;
-  if (!user) throw new Error('User not authenticated');
+  const cloudName = process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME;
+  const uploadPreset = process.env.EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
+
+  if (!cloudName || !uploadPreset) {
+    throw new Error('Cloudinary environment variables missing');
+  }
 
   const formData = new FormData();
   const fileExtension = fileUri.split('.').pop() || 'jpg';
-  const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExtension}`;
-  const filePath = `${folder}/${fileName}`;
 
   formData.append('file', {
     uri: fileUri,
-    name: fileName,
     type: `image/${fileExtension === 'png' ? 'png' : 'jpeg'}`,
+    name: `upload.${fileExtension}`,
   } as any);
 
-  const { error } = await supabase.storage
-    .from('media')
-    .upload(filePath, formData);
+  formData.append('upload_preset', uploadPreset);
+  formData.append('folder', folder);
 
-  if (error) throw error;
+  const response = await fetch(
+    `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+    {
+      method: 'POST',
+      body: formData,
+    }
+  );
 
-  const { data: publicUrlData } = supabase.storage
-    .from('media')
-    .getPublicUrl(filePath);
+  const data = await response.json();
 
-  return publicUrlData.publicUrl;
+  if (!response.ok) {
+    throw new Error(data.error?.message || 'Cloudinary upload failed');
+  }
+
+  return data.secure_url;
 };
