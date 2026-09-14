@@ -65,6 +65,7 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({ navigation
       }
     } catch (error: any) {
       console.error('Failed to load profile details:', error);
+      Alert.alert('Error Loading Profile', error.message || 'Unable to fetch profile details.');
     } finally {
       setLoading(false);
     }
@@ -107,9 +108,12 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({ navigation
           setCoverUrl(uploadedPublicUrl);
           setInitialData((prev: any) => ({ ...prev, cover_url: uploadedPublicUrl }));
         }
+
+        Alert.alert('Success', `${type === 'avatar' ? 'Profile picture' : 'Cover image'} updated successfully!`);
       }
     } catch (error: any) {
       console.error('Image upload error:', error);
+      Alert.alert('Upload Failed', error.message || 'An error occurred while uploading image.');
     } finally {
       setSavingField(null);
     }
@@ -123,8 +127,10 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({ navigation
       await updateUserProfile({ [fieldKey]: cleanValue });
 
       setInitialData((prev: any) => ({ ...prev, [fieldKey]: cleanValue }));
+      Alert.alert('Success', 'Profile updated successfully!');
     } catch (error: any) {
       console.error(`Failed to update ${fieldKey}:`, error);
+      Alert.alert('Update Failed', error.message || `Failed to update ${fieldKey}. Please try again.`);
     } finally {
       setSavingField(null);
     }
