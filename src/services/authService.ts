@@ -50,3 +50,40 @@ export const resetPassword = async (email: string) => {
   }
   return data;
 };
+
+export const uploadToCloudinary = async (fileUri: string, folder: string) => {
+  const cloudName = process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME;
+  const uploadPreset = process.env.EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
+
+  if (!cloudName || !uploadPreset) {
+    throw new Error('Cloudinary environment variables missing in authService');
+  }
+
+  const formData = new FormData();
+  const fileExtension = fileUri.split('.').pop() || 'jpg';
+
+  formData.append('file', {
+    uri: fileUri,
+    type: `image/${fileExtension === 'png' ? 'png' : 'jpeg'}`,
+    name: `upload.${fileExtension}`,
+  } as any);
+
+  formData.append('upload_preset', uploadPreset);
+  formData.append('folder', folder);
+
+  const response = await fetch(
+    `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+    {
+      method: 'POST',
+      body: formData,
+    }
+  );
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error?.message || 'Cloudinary upload failed');
+  }
+
+  return data.secure_url;
+};
