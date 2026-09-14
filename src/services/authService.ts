@@ -59,31 +59,45 @@ export const uploadToCloudinary = async (fileUri: string, folder: string) => {
     throw new Error('Cloudinary environment variables missing in authService');
   }
 
+  const cleanUri = fileUri.split('?')[0];
+  const extension = cleanUri.split('.').pop()?.toLowerCase() || 'jpg';
+  
+  let mimeType = 'image/jpeg';
+  if (extension === 'png') mimeType = 'image/png';
+  else if (extension === 'webp') mimeType = 'image/webp';
+  else if (extension === 'gif') mimeType = 'image/gif';
+
   const formData = new FormData();
-  const fileExtension = fileUri.split('.').pop() || 'jpg';
 
   formData.append('file', {
     uri: fileUri,
-    type: `image/${fileExtension === 'png' ? 'png' : 'jpeg'}`,
-    name: `upload.${fileExtension}`,
+    type: mimeType,
+    name: `upload_${Date.now()}.${extension === 'tmp' ? 'jpg' : extension}`,
   } as any);
 
   formData.append('upload_preset', uploadPreset);
   formData.append('folder', folder);
 
-  const response = await fetch(
-    `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
-    {
-      method: 'POST',
-      body: formData,
+  try {
+    const response = await fetch(
+      `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+      {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'Accept': 'application/json',
+        },
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error?.message || 'Cloudinary upload failed');
     }
-  );
 
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error?.message || 'Cloudinary upload failed');
+    return data.secure_url;
+  } catch (err: any) {
+    throw new Error(err.message || 'Network request failed for image upload');
   }
-
-  return data.secure_url;
 };
