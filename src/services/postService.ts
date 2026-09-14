@@ -1,8 +1,6 @@
 import { supabase } from './authService';
 import { uploadMedia } from './userService';
 
-export { supabase };
-
 export const fetchFeedPosts = async (page: number = 0, limit: number = 10) => {
   const user = (await supabase.auth.getUser()).data.user;
   const start = page * limit;
@@ -159,8 +157,6 @@ export const toggleLike = async (postId: string, reactionType: string = 'like', 
     ]);
   }
 };
-
-export const toggleLikePost = toggleLike;
 
 export const fetchComments = async (postId: string) => {
   const { data, error } = await supabase
