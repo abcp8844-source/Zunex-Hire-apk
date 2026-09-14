@@ -5,7 +5,6 @@ import {
   StyleSheet,
   FlatList,
   TouchableOpacity,
-  Alert,
   RefreshControl,
   Image,
   SafeAreaView,
@@ -42,7 +41,6 @@ export const OtherProfileScreen: React.FC<OtherProfileScreenProps> = ({ navigati
 
   const loadProfileData = useCallback(async () => {
     if (!targetUserId) {
-      Alert.alert('Error', 'User id missing.');
       navigation.goBack();
       return;
     }
@@ -62,7 +60,7 @@ export const OtherProfileScreen: React.FC<OtherProfileScreenProps> = ({ navigati
         setPage(1);
       }
     } catch (error) {
-      Alert.alert('Error', 'Unable to load profile.');
+      console.error('Failed to load profile data:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -93,7 +91,7 @@ export const OtherProfileScreen: React.FC<OtherProfileScreenProps> = ({ navigati
         setHasMorePosts(false);
       }
     } catch (error) {
-      console.error(error);
+      console.error('Failed to load more posts:', error);
     } finally {
       setLoadingMore(false);
     }
@@ -104,7 +102,7 @@ export const OtherProfileScreen: React.FC<OtherProfileScreenProps> = ({ navigati
       setActionLoading(true);
       setFriendStatus((prev) => (prev === 'none' ? 'pending' : 'none'));
     } catch (error) {
-      Alert.alert('Error', 'Action failed. Please try again.');
+      console.error('Friend request action failed:', error);
     } finally {
       setActionLoading(false);
     }
