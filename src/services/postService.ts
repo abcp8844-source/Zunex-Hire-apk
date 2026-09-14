@@ -77,6 +77,7 @@ export const createPost = async (content: string, imageUri?: string, groupId?: s
         user_id: user.id,
         content: content.trim(),
         image_url: imageUrl,
+        media_url: imageUrl,
         group_id: groupId || null,
       },
     ])
@@ -93,7 +94,9 @@ export const updatePost = async (postId: string, updates: Record<string, any>, n
   const finalUpdates = { ...updates };
 
   if (newImageUri) {
-    finalUpdates.image_url = await uploadMedia(newImageUri, 'posts');
+    const uploadedUrl = await uploadMedia(newImageUri, 'posts');
+    finalUpdates.image_url = uploadedUrl;
+    finalUpdates.media_url = uploadedUrl;
   }
 
   const { data, error } = await supabase
