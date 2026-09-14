@@ -89,10 +89,10 @@ export const EditProfileScreen: React.FC<EditProfileScreenProps> = ({ navigation
       if (!result.canceled && result.assets && result.assets.length > 0) {
         const selectedUri = result.assets[0].uri;
         const fieldKey = type === 'avatar' ? 'avatar_url' : 'cover_url';
-        
+        const folderName = type === 'avatar' ? 'avatars' : 'covers';
+
         setSavingField(fieldKey);
 
-        const folderName = type === 'avatar' ? 'avatars' : 'covers';
         const uploadedPublicUrl = await uploadMedia(selectedUri, folderName);
 
         if (!uploadedPublicUrl) {
