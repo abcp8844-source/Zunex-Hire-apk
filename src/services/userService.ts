@@ -1,4 +1,4 @@
-import { supabase } from './authService';
+import { supabase, uploadToCloudinary } from './authService';
 
 export { supabase };
 
@@ -70,38 +70,5 @@ export const fetchNonFriends = async (page: number = 0, limit: number = 20) => {
 };
 
 export const uploadMedia = async (fileUri: string, folder: string) => {
-  const cloudName = process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME;
-  const uploadPreset = process.env.EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
-
-  if (!cloudName || !uploadPreset) {
-    throw new Error('Cloudinary environment variables missing');
-  }
-
-  const formData = new FormData();
-  const fileExtension = fileUri.split('.').pop() || 'jpg';
-
-  formData.append('file', {
-    uri: fileUri,
-    type: `image/${fileExtension === 'png' ? 'png' : 'jpeg'}`,
-    name: `upload.${fileExtension}`,
-  } as any);
-
-  formData.append('upload_preset', uploadPreset);
-  formData.append('folder', folder);
-
-  const response = await fetch(
-    `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
-    {
-      method: 'POST',
-      body: formData,
-    }
-  );
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error?.message || 'Cloudinary upload failed');
-  }
-
-  return data.secure_url;
+  return await uploadToCloudinary(fileUri, folder);
 };
