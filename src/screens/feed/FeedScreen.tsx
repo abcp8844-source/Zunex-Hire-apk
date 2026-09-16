@@ -9,6 +9,7 @@ import { CreatePostScreen } from '../Post/CreatePostScreen';
 
 import { fetchFeedPosts } from '../../services/postService';
 import { getCurrentUserProfile } from '../../services/userService';
+import { getOptimizedImageUrl, preloadImages } from '../../utils/imageUtils';
 
 interface FeedScreenProps {
   navigation: any;
@@ -40,6 +41,11 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ navigation }) => {
     try {
       const data = await fetchFeedPosts(pageNumber, PAGE_SIZE);
       if (data && data.length > 0) {
+        const imageUrlsToPreload = data
+          .map((post: any) => getOptimizedImageUrl(post.image_url, 800))
+          .filter(Boolean) as string[];
+        preloadImages(imageUrlsToPreload);
+
         setPosts((prevPosts) => (isRefresh || pageNumber === 0 ? data : [...prevPosts, ...data]));
         setHasMore(data.length === PAGE_SIZE);
         setPage(pageNumber);
@@ -95,6 +101,8 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ navigation }) => {
     [currentUser?.id, navigation]
   );
 
+  const userAvatarUri = getOptimizedImageUrl(currentUser?.avatar_url, 100, 100) || 'https://via.placeholder.com/150';
+
   return (
     <View style={styles.container}>
       <Header
@@ -108,9 +116,7 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ navigation }) => {
           activeOpacity={0.8}
         >
           <Image
-            source={{
-              uri: currentUser?.avatar_url || 'https://via.placeholder.com/150',
-            }}
+            source={{ uri: userAvatarUri }}
             style={styles.userAvatar}
           />
         </TouchableOpacity>
