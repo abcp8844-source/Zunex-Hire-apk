@@ -1,192 +1,113 @@
-import { Loader } from '../../components/Loader';
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Modal, Image } from 'react-native';
+import {
+  View,
+  Image,
+  TouchableOpacity,
+  StyleSheet,
+  Modal,
+  Text,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { updatePost } from '../../services/postService';
-import { PostImageEditor } from './PostImageEditor';
+import * as ImagePicker from 'expo-image-picker';
 
-interface EditPostScreenProps {
-  post: any;
-  onClose: () => void;
-  onUpdated: () => void;
+interface PostImageEditorProps {
+  imageUrl: string;
+  onImagePicked: (uri: string) => void;
+  onImageDeleted: () => void;
+  onClose?: () => void;
 }
 
-export const EditPostScreen: React.FC<EditPostScreenProps> = ({
-  post,
+export const PostImageEditor: React.FC<PostImageEditorProps> = ({
+  imageUrl,
+  onImagePicked,
+  onImageDeleted,
   onClose,
-  onUpdated,
 }) => {
-  const [content, setContent] = useState(post?.content || '');
-  const [audience, setAudience] = useState<'public' | 'friends' | 'private'>(
-    post?.audience || 'public'
-  );
-  const [imageUrl, setImageUrl] = useState(post?.image_url || '');
-  const [loading, setLoading] = useState(false);
+  const [menuVisible, setMenuVisible] = useState(false);
 
-  const handleUpdate = async () => {
-    if (loading) return;
-    setLoading(true);
-    try {
-      await updatePost(post.id, content, audience, imageUrl);
-      setLoading(false);
-      onUpdated();
-    } catch (error) {
-      console.error(error);
-      setLoading(false);
+  const pickImageWithoutCrop = async () => {
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permissionResult.granted) return;
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: false,
+      quality: 1,
+    });
+
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      onImagePicked(result.assets[0].uri);
     }
   };
 
-  const toggleAudience = () => {
-    if (audience === 'public') setAudience('friends');
-    else if (audience === 'friends') setAudience('private');
-    else setAudience('public');
-  };
-
-  const handleImagePicked = (uri: string) => {
-    setImageUrl(uri);
-  };
-
-  const handleImageDeleted = () => {
-    setImageUrl('');
-  };
-
   return (
-    <Modal animationType="slide" transparent={false} visible={true}>
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={onClose} activeOpacity={0.7}>
-            <Ionicons name="close" size={26} color="#050505" />
+    <Modal
+      animationType="fade"
+      transparent={true}
+      visible={true}
+      onRequestClose={onClose || (() => setMenuVisible(false))}
+    >
+      <TouchableOpacity
+        style={styles.modalOverlay}
+        activeOpacity={1}
+        onPress={onClose || (() => setMenuVisible(false))}
+      >
+        <View style={styles.menuContainer}>
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => {
+              if (onClose) onClose();
+              pickImageWithoutCrop();
+            }}
+          >
+            <Ionicons name="image-outline" size={20} color="#050505" />
+            <Text style={styles.menuText}>Change Photo</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Edit Post</Text>
-          <TouchableOpacity onPress={handleUpdate} disabled={loading} activeOpacity={0.7}>
-            {loading ? (
-              <Loader />
-            ) : (
-              <Text style={styles.saveText}>Save</Text>
-            )}
+
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => {
+              if (onClose) onClose();
+              onImageDeleted();
+            }}
+          >
+            <Ionicons name="trash-outline" size={20} color="#ff3b30" />
+            <Text style={[styles.menuText, { color: '#ff3b30' }]}>Delete Photo</Text>
           </TouchableOpacity>
         </View>
-
-        <View style={styles.body}>
-          <View style={styles.userInfoRow}>
-            <Image
-              source={{
-                uri: post?.profiles?.avatar_url || post?.user?.avatar_url || 'https://via.placeholder.com/150',
-              }}
-              style={styles.userAvatar}
-            />
-            <View>
-              <Text style={styles.userName}>
-                {post?.profiles?.full_name || post?.user?.full_name || 'User'}
-              </Text>
-              <TouchableOpacity
-                style={styles.audienceSelector}
-                onPress={toggleAudience}
-                activeOpacity={0.7}
-              >
-                <Ionicons
-                  name={
-                    audience === 'public'
-                      ? 'globe-outline'
-                      : audience === 'friends'
-                      ? 'people-outline'
-                      : 'lock-closed-outline'
-                  }
-                  size={12}
-                  color="#65676b"
-                />
-                <Text style={styles.audienceText}>{audience.toUpperCase()}</Text>
-                <Ionicons name="caret-down" size={12} color="#65676b" />
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          <TextInput
-            style={styles.input}
-            multiline
-            value={content}
-            onChangeText={setContent}
-            placeholder="Edit your post..."
-            placeholderTextColor="#65676b"
-          />
-
-          <PostImageEditor
-            imageUrl={imageUrl}
-            onImagePicked={handleImagePicked}
-            onImageDeleted={handleImageDeleted}
-          />
-        </View>
-      </View>
+      </TouchableOpacity>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  modalOverlay: {
     flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  menuContainer: {
     backgroundColor: '#ffffff',
-    paddingTop: 40,
+    borderRadius: 8,
+    width: 220,
+    paddingVertical: 8,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
   },
-  header: {
+  menuItem: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    paddingVertical: 12,
     paddingHorizontal: 16,
-    height: 50,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e4e6eb',
+    gap: 10,
   },
-  headerTitle: {
-    fontSize: 17,
-    fontWeight: '600',
+  menuText: {
+    fontSize: 15,
     color: '#050505',
-  },
-  saveText: {
-    color: '#1877f2',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  body: {
-    flex: 1,
-    padding: 16,
-  },
-  userInfoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  userAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 10,
-    backgroundColor: '#e4e6eb',
-  },
-  userName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#050505',
-  },
-  audienceSelector: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#ced0d4',
-    borderRadius: 4,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    marginTop: 2,
-    gap: 4,
-  },
-  audienceText: {
-    fontSize: 11,
-    color: '#65676b',
-    fontWeight: '600',
-  },
-  input: {
-    fontSize: 16,
-    color: '#050505',
-    minHeight: 100,
-    textAlignVertical: 'top',
+    fontWeight: '500',
   },
 });
