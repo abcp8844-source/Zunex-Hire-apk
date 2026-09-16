@@ -20,6 +20,7 @@ import { MediaViewerScreen } from './MediaViewerScreen';
 
 import { deletePost, savePost, reportPost } from '../../services/postService';
 import { FB_REACTIONS } from '../../constants/reactions';
+import { getOptimizedImageUrl } from '../../utils/imageUtils';
 
 interface PostCardProps {
   post: any;
@@ -107,12 +108,15 @@ const PostCardComponent: React.FC<PostCardProps> = ({ post, currentUserId, onUpd
   const totalShares = Number(post?.shares_count) || 0;
   const topReactions = Array.isArray(post?.reaction_summary) ? post.reaction_summary : [];
 
+  const avatarUri = getOptimizedImageUrl(post?.profiles?.avatar_url, 120, 120) || 'https://via.placeholder.com/150';
+  const postImageUri = getOptimizedImageUrl(post?.image_url, 800);
+
   return (
     <View style={styles.card}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.userInfo} activeOpacity={0.7} onPress={handleProfilePress}>
           <Image
-            source={{ uri: post?.profiles?.avatar_url || 'https://via.placeholder.com/150' }}
+            source={{ uri: avatarUri }}
             style={styles.avatar}
           />
           <View style={styles.headerTextContainer}>
@@ -144,9 +148,9 @@ const PostCardComponent: React.FC<PostCardProps> = ({ post, currentUserId, onUpd
 
       {post?.content ? <Text style={styles.content}>{post.content}</Text> : null}
 
-      {post?.image_url ? (
+      {postImageUri ? (
         <TouchableOpacity onPress={() => setSelectedMedia(post.image_url)} activeOpacity={0.95}>
-          <Image source={{ uri: post.image_url }} style={styles.image} resizeMode="cover" />
+          <Image source={{ uri: postImageUri }} style={styles.image} resizeMode="cover" />
         </TouchableOpacity>
       ) : null}
 
