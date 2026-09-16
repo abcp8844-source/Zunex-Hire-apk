@@ -15,6 +15,7 @@ import { Loader } from '../../components/Loader';
 import { Header } from '../../components/Header';
 import { fetchUserProfile, fetchUserPosts } from '../../services/userService';
 import { PostCard } from '../feed/PostCard';
+import { getOptimizedImageUrl, preloadImages } from '../../utils/imageUtils';
 
 interface ProfileScreenProps {
   navigation: any;
@@ -41,6 +42,11 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
 
       const userPosts = await fetchUserPosts(undefined, 1, PAGE_SIZE);
       if (userPosts) {
+        const imageUrlsToPreload = userPosts
+          .map((post: any) => getOptimizedImageUrl(post.image_url, 800))
+          .filter(Boolean) as string[];
+        preloadImages(imageUrlsToPreload);
+
         setPosts(userPosts);
         setHasMorePosts(userPosts.length === PAGE_SIZE);
         setPage(1);
@@ -70,6 +76,11 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
       const nextPage = page + 1;
       const newPosts = await fetchUserPosts(undefined, nextPage, PAGE_SIZE);
       if (newPosts && newPosts.length > 0) {
+        const imageUrlsToPreload = newPosts
+          .map((post: any) => getOptimizedImageUrl(post.image_url, 800))
+          .filter(Boolean) as string[];
+        preloadImages(imageUrlsToPreload);
+
         setPosts((prev) => [...prev, ...newPosts]);
         setPage(nextPage);
         setHasMorePosts(newPosts.length === PAGE_SIZE);
@@ -83,11 +94,14 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
     }
   };
 
+  const coverUri = getOptimizedImageUrl(profile?.cover_url, 800);
+  const avatarUri = getOptimizedImageUrl(profile?.avatar_url, 200, 200);
+
   const renderProfileHeader = () => (
     <View style={styles.headerContainer}>
       <View style={styles.coverContainer}>
-        {profile?.cover_url ? (
-          <Image source={{ uri: profile.cover_url }} style={styles.coverImage} resizeMode="cover" />
+        {coverUri ? (
+          <Image source={{ uri: coverUri }} style={styles.coverImage} resizeMode="cover" />
         ) : (
           <View style={styles.defaultCoverPlaceholder}>
             <Ionicons name="image-outline" size={40} color="#8a8d91" />
@@ -97,8 +111,8 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
 
       <View style={styles.profileHeaderContent}>
         <View style={styles.avatarWrapper}>
-          {profile?.avatar_url ? (
-            <Image source={{ uri: profile.avatar_url }} style={styles.avatar} />
+          {avatarUri ? (
+            <Image source={{ uri: avatarUri }} style={styles.avatar} />
           ) : (
             <View style={styles.defaultAvatarPlaceholder}>
               <Ionicons name="person" size={40} color="#1c2b33" />
@@ -183,9 +197,13 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
           data={posts}
           keyExtractor={(item) => item.id.toString()}
           ListHeaderComponent={renderProfileHeader()}
-          renderItem={({ item }) => <PostCard post={item} onUpdate={loadProfileData} />}
+          renderItem={({ item }) => <PostCard post={item} currentUserId={profile?.id || ''} navigation={navigation} onUpdate={loadProfileData} />}
           onEndReached={handleLoadMore}
           onEndReachedThreshold={0.5}
+          initialNumToRender={5}
+          maxToRenderPerBatch={5}
+          windowSize={10}
+          removeClippedSubviews={true}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={['#1877f2']} />
           }
