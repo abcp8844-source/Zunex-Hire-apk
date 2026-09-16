@@ -58,7 +58,11 @@ export const fetchFeedPosts = async (page: number = 0, limit: number = 10) => {
   }));
 };
 
-export const createPost = async (content: string, imageUri?: string, groupId?: string) => {
+export const createPost = async (
+  content: string,
+  imageUri?: string,
+  visibility: 'public' | 'friends' | 'private' = 'public'
+) => {
   const user = (await supabase.auth.getUser()).data.user;
   if (!user) throw new Error('Authentication required');
 
@@ -76,7 +80,7 @@ export const createPost = async (content: string, imageUri?: string, groupId?: s
         content: content.trim(),
         image_url: imageUrl,
         media_url: imageUrl,
-        group_id: groupId || null,
+        visibility: visibility,
       },
     ])
     .select();
@@ -85,7 +89,11 @@ export const createPost = async (content: string, imageUri?: string, groupId?: s
   return data;
 };
 
-export const updatePost = async (postId: string, updates: Record<string, any>, newImageUri?: string) => {
+export const updatePost = async (
+  postId: string,
+  updates: Record<string, any>,
+  newImageUri?: string
+) => {
   const user = (await supabase.auth.getUser()).data.user;
   if (!user) throw new Error('Authentication required');
 
