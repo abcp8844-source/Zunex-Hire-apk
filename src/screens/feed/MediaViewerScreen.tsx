@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Image, StyleSheet, TouchableOpacity, StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../theme';
+import { getOptimizedImageUrl } from '../../utils/imageUtils';
 
 interface MediaViewerScreenProps {
   imageUrl: string;
@@ -9,6 +10,8 @@ interface MediaViewerScreenProps {
 }
 
 export const MediaViewerScreen: React.FC<MediaViewerScreenProps> = ({ imageUrl, onClose }) => {
+  const optimizedUri = getOptimizedImageUrl(imageUrl, 1200) || imageUrl;
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#000000" />
@@ -20,7 +23,7 @@ export const MediaViewerScreen: React.FC<MediaViewerScreenProps> = ({ imageUrl, 
       >
         <Ionicons name="close" size={24} color={theme.colors?.white || '#ffffff'} />
       </TouchableOpacity>
-      <Image source={{ uri: imageUrl }} style={styles.image} resizeMode="contain" />
+      <Image source={{ uri: optimizedUri }} style={styles.image} resizeMode="contain" />
     </View>
   );
 };
