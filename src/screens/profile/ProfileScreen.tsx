@@ -15,7 +15,7 @@ import { Loader } from '../../components/Loader';
 import { Header } from '../../components/Header';
 import { fetchUserProfile, fetchUserPosts } from '../../services/userService';
 import { PostCard } from '../feed/PostCard';
-import { getOptimizedImageUrl, preloadImages } from '../../../utils/imageUtils';
+import { getOptimizedImageUrl, preloadImages } from '../../utils/imageUtils';
 
 interface ProfileScreenProps {
   navigation: any;
